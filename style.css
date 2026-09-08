@@ -4,161 +4,200 @@
     padding: 0;
 }
 
-body {
-    font-family: Arial, sans-serif;
-    background: #F5F0E6;
-    color: #0B1F3A;
+:root {
+    --navy: #0B1F3A;
+    --dark-navy: #061426;
+    --cream: #F5F0E6;
 }
 
+/* الصفحة */
+
+body {
+    font-family: Arial, sans-serif;
+    background: var(--cream);
+    color: var(--dark-navy);
+    min-height: 100vh;
+}
+
+/* الرأس */
+
 header {
-    background: #0B1F3A;
-    color: #F5F0E6;
+    background: var(--dark-navy);
+    color: var(--cream);
     text-align: center;
-    padding: 45px 20px;
+    padding: 50px 20px;
 }
 
 header h1 {
-    font-size: 48px;
-    margin-bottom: 10px;
-    letter-spacing: 2px;
+    font-size: 52px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    margin-bottom: 12px;
 }
 
 header p {
     font-size: 18px;
 }
 
+/* القائمة */
+
 nav {
-    background: #FFFDF7;
-    padding: 18px;
+    background: var(--cream);
+    padding: 20px;
     text-align: center;
-    box-shadow: 0 2px 10px rgba(11, 31, 58, 0.10);
+    border-bottom: 2px solid var(--navy);
 }
 
 nav a {
-    color: #0B1F3A;
+    color: var(--navy);
     text-decoration: none;
-    margin: 0 15px;
+    margin: 0 18px;
     font-weight: bold;
 }
 
 nav a:hover {
-    color: #244C77;
+    color: var(--dark-navy);
 }
+
+/* المحتوى */
 
 main {
     max-width: 1100px;
-    margin: 40px auto;
+    margin: 45px auto;
     padding: 0 20px;
 }
 
 h2 {
+    color: var(--dark-navy);
     text-align: center;
-    color: #0B1F3A;
-    margin-bottom: 25px;
+    margin-bottom: 30px;
+    font-size: 30px;
 }
+
+/* البحث */
 
 .search {
     display: flex;
     gap: 10px;
-    margin-bottom: 25px;
+    margin-bottom: 30px;
 }
 
 .search input {
     flex: 1;
-    padding: 15px;
-    background: #FFFDF7;
-    color: #0B1F3A;
-    border: 2px solid #D8CDBB;
+    padding: 16px;
+    background: var(--cream);
+    color: var(--dark-navy);
+    border: 2px solid var(--navy);
     border-radius: 10px;
     font-size: 16px;
     outline: none;
 }
 
-.search input:focus {
-    border-color: #0B1F3A;
+.search input::placeholder {
+    color: var(--navy);
 }
 
+.search input:focus {
+    border-color: var(--dark-navy);
+}
+
+/* الأزرار */
+
 button {
-    padding: 13px 22px;
-    border: none;
+    padding: 13px 23px;
+    border: 2px solid var(--dark-navy);
     border-radius: 10px;
-    background: #0B1F3A;
-    color: #F5F0E6;
+    background: var(--navy);
+    color: var(--cream);
     cursor: pointer;
     font-size: 15px;
+    font-weight: bold;
 }
 
 button:hover {
-    background: #19385C;
+    background: var(--dark-navy);
 }
+
+/* التصنيفات */
 
 .categories {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     flex-wrap: wrap;
     justify-content: center;
-    margin-bottom: 35px;
+    margin-bottom: 40px;
 }
 
 .categories button {
-    background: #FFFDF7;
-    color: #0B1F3A;
-    border: 2px solid #0B1F3A;
+    background: var(--cream);
+    color: var(--navy);
+    border: 2px solid var(--navy);
 }
 
 .categories button:hover {
-    background: #0B1F3A;
-    color: #F5F0E6;
+    background: var(--navy);
+    color: var(--cream);
 }
+
+/* الإعلانات */
 
 .listings {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+    gap: 22px;
 }
 
 .listing {
-    background: #FFFDF7;
-    padding: 25px;
+    background: var(--cream);
+    padding: 28px;
+    border: 2px solid var(--navy);
     border-radius: 14px;
-    border: 1px solid #D8CDBB;
-    box-shadow: 0 4px 15px rgba(11, 31, 58, 0.08);
 }
 
 .listing h3 {
-    color: #0B1F3A;
-    margin-bottom: 10px;
+    color: var(--dark-navy);
+    margin-bottom: 12px;
+    font-size: 21px;
 }
 
 .listing p {
-    color: #6B6B63;
-    margin-bottom: 15px;
+    color: var(--navy);
+    margin-bottom: 18px;
 }
 
 .listing strong {
-    color: #0B1F3A;
-    font-size: 20px;
+    color: var(--dark-navy);
+    font-size: 21px;
 }
+
+/* الفوتر */
 
 footer {
     text-align: center;
-    padding: 30px;
-    margin-top: 50px;
-    background: #0B1F3A;
-    color: #F5F0E6;
+    padding: 35px;
+    margin-top: 60px;
+    background: var(--dark-navy);
+    color: var(--cream);
 }
 
+/* الهاتف */
+
 @media (max-width: 600px) {
+
     header h1 {
-        font-size: 38px;
+        font-size: 40px;
     }
 
     nav a {
         display: inline-block;
-        margin: 7px;
+        margin: 8px;
     }
 
     .search {
         flex-direction: column;
+    }
+
+    .search button {
+        width: 100%;
     }
 }
