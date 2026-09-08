@@ -6,13 +6,13 @@
 
 body {
     font-family: Arial, sans-serif;
-    background: #f5f9ff;
-    color: #172033;
+    background: #F5F0E6;
+    color: #0B1F3A;
 }
 
 header {
-    background: #0d6efd;
-    color: white;
+    background: #0B1F3A;
+    color: #F5F0E6;
     text-align: center;
     padding: 45px 20px;
 }
@@ -20,6 +20,7 @@ header {
 header h1 {
     font-size: 48px;
     margin-bottom: 10px;
+    letter-spacing: 2px;
 }
 
 header p {
@@ -27,17 +28,21 @@ header p {
 }
 
 nav {
-    background: white;
+    background: #FFFDF7;
     padding: 18px;
     text-align: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 10px rgba(11, 31, 58, 0.10);
 }
 
 nav a {
-    color: #0d6efd;
+    color: #0B1F3A;
     text-decoration: none;
     margin: 0 15px;
     font-weight: bold;
+}
+
+nav a:hover {
+    color: #244C77;
 }
 
 main {
@@ -48,7 +53,7 @@ main {
 
 h2 {
     text-align: center;
-    color: #123b72;
+    color: #0B1F3A;
     margin-bottom: 25px;
 }
 
@@ -61,28 +66,30 @@ h2 {
 .search input {
     flex: 1;
     padding: 15px;
-    border: 2px solid #d5e5ff;
+    background: #FFFDF7;
+    color: #0B1F3A;
+    border: 2px solid #D8CDBB;
     border-radius: 10px;
     font-size: 16px;
     outline: none;
 }
 
 .search input:focus {
-    border-color: #0d6efd;
+    border-color: #0B1F3A;
 }
 
 button {
     padding: 13px 22px;
     border: none;
     border-radius: 10px;
-    background: #0d6efd;
-    color: white;
+    background: #0B1F3A;
+    color: #F5F0E6;
     cursor: pointer;
     font-size: 15px;
 }
 
 button:hover {
-    background: #0957c7;
+    background: #19385C;
 }
 
 .categories {
@@ -94,14 +101,14 @@ button:hover {
 }
 
 .categories button {
-    background: white;
-    color: #0d6efd;
-    border: 2px solid #0d6efd;
+    background: #FFFDF7;
+    color: #0B1F3A;
+    border: 2px solid #0B1F3A;
 }
 
 .categories button:hover {
-    background: #0d6efd;
-    color: white;
+    background: #0B1F3A;
+    color: #F5F0E6;
 }
 
 .listings {
@@ -111,25 +118,25 @@ button:hover {
 }
 
 .listing {
-    background: white;
+    background: #FFFDF7;
     padding: 25px;
     border-radius: 14px;
-    border: 1px solid #e0ebfa;
-    box-shadow: 0 4px 15px rgba(13,110,253,0.08);
+    border: 1px solid #D8CDBB;
+    box-shadow: 0 4px 15px rgba(11, 31, 58, 0.08);
 }
 
 .listing h3 {
-    color: #123b72;
+    color: #0B1F3A;
     margin-bottom: 10px;
 }
 
 .listing p {
-    color: #687386;
+    color: #6B6B63;
     margin-bottom: 15px;
 }
 
 .listing strong {
-    color: #0d6efd;
+    color: #0B1F3A;
     font-size: 20px;
 }
 
@@ -137,8 +144,8 @@ footer {
     text-align: center;
     padding: 30px;
     margin-top: 50px;
-    background: #123b72;
-    color: white;
+    background: #0B1F3A;
+    color: #F5F0E6;
 }
 
 @media (max-width: 600px) {
