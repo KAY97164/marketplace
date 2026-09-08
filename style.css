@@ -201,3 +201,43 @@ footer {
         width: 100%;
     }
 }
+/* نموذج إضافة إعلان */
+
+form {
+    max-width: 600px;
+    margin: 30px auto;
+    padding: 25px;
+    background: var(--cream);
+    border-radius: 12px;
+}
+
+label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 6px;
+    font-weight: bold;
+    color: var(--dark-navy);
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid var(--navy);
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+    color: var(--dark-navy);
+}
+
+textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+form button {
+    width: 100%;
+    margin-top: 20px;
+}
