@@ -30,12 +30,17 @@ async function loadOrders() {
             id,
             total,
             status,
+            payment_status,
+            payment_method,
+            shipping_address,
             created_at,
             order_items (
                 id,
                 quantity,
                 price,
+                seller_id,
                 listings (
+                    id,
                     title,
                     city,
                     image_urls
@@ -99,34 +104,48 @@ async function loadOrders() {
         const status =
             document.createElement("p");
 
-        const statusNames = {
-
-            pending:
-                "قيد الانتظار ⏳",
-
-            confirmed:
-                "تم التأكيد ✅",
-
-            shipped:
-                "تم الشحن 🚚",
-
-            delivered:
-                "تم التسليم 📦",
-
-            cancelled:
-                "ملغى ❌"
-
-        };
-
-
         status.textContent =
             "الحالة: " +
-            (
-                statusNames[order.status] ||
-                order.status
-            );
+            getStatusName(order.status);
 
         orderCard.appendChild(status);
+
+
+        const payment =
+            document.createElement("p");
+
+        payment.textContent =
+            "الدفع: " +
+            getPaymentStatusName(
+                order.payment_status
+            );
+
+        orderCard.appendChild(payment);
+
+
+        const method =
+            document.createElement("p");
+
+        method.textContent =
+            "طريقة الدفع: " +
+            (
+                order.payment_method ===
+                "cash_on_delivery"
+                    ? "الدفع عند الاستلام"
+                    : order.payment_method || "غير محددة"
+            );
+
+        orderCard.appendChild(method);
+
+
+        const address =
+            document.createElement("p");
+
+        address.textContent =
+            "عنوان التوصيل: " +
+            order.shipping_address;
+
+        orderCard.appendChild(address);
 
 
         const total =
@@ -144,6 +163,7 @@ async function loadOrders() {
             document.createElement("small");
 
         date.textContent =
+            "تاريخ الطلب: " +
             new Date(
                 order.created_at
             ).toLocaleString("ar-MA");
@@ -151,21 +171,21 @@ async function loadOrders() {
         orderCard.appendChild(date);
 
 
+        const itemsTitle =
+            document.createElement("h4");
+
+        itemsTitle.textContent =
+            "المنتجات:";
+
+        orderCard.appendChild(
+            itemsTitle
+        );
+
+
         if (
             order.order_items &&
             order.order_items.length > 0
         ) {
-
-            const itemsTitle =
-                document.createElement("h4");
-
-            itemsTitle.textContent =
-                "المنتجات:";
-
-            orderCard.appendChild(
-                itemsTitle
-            );
-
 
             order.order_items.forEach(
                 function (item) {
@@ -206,6 +226,54 @@ async function loadOrders() {
         );
 
     });
+
+}
+
+
+function getStatusName(status) {
+
+    const names = {
+
+        pending:
+            "قيد الانتظار ⏳",
+
+        confirmed:
+            "تم التأكيد ✅",
+
+        shipped:
+            "تم الشحن 🚚",
+
+        delivered:
+            "تم التسليم 📦",
+
+        cancelled:
+            "ملغى ❌"
+
+    };
+
+
+    return names[status] || status;
+
+}
+
+
+function getPaymentStatusName(status) {
+
+    const names = {
+
+        unpaid:
+            "غير مدفوع",
+
+        paid:
+            "تم الدفع ✅",
+
+        refunded:
+            "تم استرداد المبلغ ↩️"
+
+    };
+
+
+    return names[status] || status || "غير محدد";
 
 }
 
