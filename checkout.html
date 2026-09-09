@@ -6,15 +6,18 @@
     <title>إتمام الطلب - Chronet</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
 <header>
     <h1>Chronet</h1>
-    <p>إتمام الطلب 🛍️</p>
+    <p>إتمام الطلب 💳</p>
 </header>
 
 <nav>
     <a href="index.html">الرئيسية</a>
+    <a href="products.html">المنتجات</a>
+    <a href="services.html">الخدمات</a>
     <a href="add.html">أضف إعلانًا</a>
     <a href="profile.html">حسابي</a>
     <a href="favorites.html">المفضلة ❤️</a>
@@ -27,32 +30,29 @@
 
 <main>
 
-    <h2>تأكيد الطلب</h2>
+    <h2>إتمام الطلب</h2>
 
-    <div id="checkoutList">
-        جاري تحميل الطلب...
-    </div>
+    <section id="checkoutItems">
+        <p>جاري تحميل السلة...</p>
+    </section>
 
-    <hr>
-
-    <h2>
-        المجموع:
-        <span id="checkoutTotal">0</span>
-        درهم
-    </h2>
+    <section>
+        <h3 id="checkoutTotal">
+            المجموع: 0
+        </h3>
+    </section>
 
     <form id="checkoutForm">
 
         <label for="shippingAddress">
-            عنوان التوصيل
+            عنوان الشحن
         </label>
 
         <textarea
             id="shippingAddress"
-            rows="4"
-            maxlength="500"
-            placeholder="اكتبي عنوان التوصيل..."
+            maxlength="1000"
             required
+            placeholder="اكتب عنوان الشحن بالتفصيل..."
         ></textarea>
 
         <label for="paymentMethod">
@@ -60,21 +60,33 @@
         </label>
 
         <select id="paymentMethod" required>
+
             <option value="">
-                اختاري طريقة الدفع
+                اختر طريقة الدفع
             </option>
+
             <option value="cash_on_delivery">
                 الدفع عند الاستلام
             </option>
+
+            <option value="card">
+                بطاقة بنكية 💳
+            </option>
+
+            <option value="paypal">
+                PayPal
+            </option>
+
         </select>
 
-        <button type="submit">
+        <button
+            type="submit"
+            id="placeOrderButton"
+        >
             تأكيد الطلب
         </button>
 
     </form>
-
-    <p id="checkoutMessage"></p>
 
 </main>
 
