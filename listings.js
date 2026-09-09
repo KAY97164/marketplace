@@ -153,17 +153,119 @@ async function loadListing() {
     );
 
     document
-        .getElementById("contactSeller")
-        .addEventListener(
-            "click",
-            function () {
+    .getElementById("contactSeller")
+    .addEventListener(
+        "click",
+        async function () {
+
+            if (!currentUser) {
 
                 alert(
-                    "نظام الرسائل سنضيفه في الخطوة القادمة."
+                    "يجب تسجيل الدخول أولًا للتواصل مع البائع."
                 );
 
+                window.location.href =
+                    "auth.html";
+
+                return;
             }
-        );
+
+
+            if (
+                currentUser.id ===
+                listing.user_id
+            ) {
+
+                alert(
+                    "لا يمكنك مراسلة نفسك."
+                );
+
+                return;
+            }
+
+
+            const {
+                data: existingConversation,
+                error: findError
+            } = await supabase
+                .from("conversations")
+                .select("id")
+                .eq(
+                    "buyer_id",
+                    currentUser.id
+                )
+                .eq(
+                    "seller_id",
+                    listing.user_id
+                )
+                .eq(
+                    "listing_id",
+                    listing.id
+                )
+                .maybeSingle();
+
+
+            if (findError) {
+
+                console.error(findError);
+
+                alert(
+                    "حدث خطأ أثناء فتح المحادثة."
+                );
+
+                return;
+            }
+
+
+            if (existingConversation) {
+
+                window.location.href =
+                    "messages.html?conversation=" +
+                    existingConversation.id;
+
+                return;
+            }
+
+
+            const {
+                data: newConversation,
+                error: createError
+            } = await supabase
+                .from("conversations")
+                .insert({
+
+                    buyer_id:
+                        currentUser.id,
+
+                    seller_id:
+                        listing.user_id,
+
+                    listing_id:
+                        listing.id
+
+                })
+                .select("id")
+                .single();
+
+
+            if (createError) {
+
+                console.error(createError);
+
+                alert(
+                    "حدث خطأ أثناء إنشاء المحادثة."
+                );
+
+                return;
+            }
+
+
+            window.location.href =
+                "messages.html?conversation=" +
+                newConversation.id;
+
+        }
+    );
 
     await loadReviews(
         listing.id,
