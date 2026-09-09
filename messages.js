@@ -1,81 +1,45 @@
-const messagesList =
-    document.getElementById("messagesList");
-
-const messageForm =
-    document.getElementById("messageForm");
-
-const messageInput =
-    document.getElementById("messageInput");
-
-const messageStatus =
-    document.getElementById("messageStatus");
-
-const conversationInfo =
-    document.getElementById("conversationInfo");
-
-const conversationsList =
-    document.getElementById("conversationsList");
-
+const messagesList = document.getElementById("messagesList");
+const messageForm = document.getElementById("messageForm");
+const messageInput = document.getElementById("messageInput");
+const messageStatus = document.getElementById("messageStatus");
+const conversationInfo = document.getElementById("conversationInfo");
+const conversationsList = document.getElementById("conversationsList");
 
 let currentUser = null;
 let conversationId = null;
 
-
 async function initializeMessages() {
 
     const {
-        data: {
-            user
-        },
+        data: { user },
         error
     } = await supabase.auth.getUser();
 
-
     if (error || !user) {
-
-        window.location.href =
-            "auth.html";
-
+        window.location.href = "auth.html";
         return;
     }
-
 
     currentUser = user;
 
-
     await loadConversations();
 
+    const params = new URLSearchParams(window.location.search);
 
-    const params =
-        new URLSearchParams(
-            window.location.search
-        );
-
-
-    conversationId =
-        params.get("conversation");
-
+    conversationId = params.get("conversation");
 
     if (!conversationId) {
-
-        conversationInfo.textContent =
-            "اختر محادثة من القائمة.";
-
-        messagesList.innerHTML =
-            "<p>لم تختر محادثة بعد.</p>";
-
-        messageForm.style.display =
-            "none";
-
+        conversationInfo.textContent = "اختر محادثة من القائمة.";
+        messagesList.innerHTML = "<p>لم تختر محادثة بعد.</p>";
+        messageForm.style.display = "none";
         return;
     }
 
-
     await loadConversation();
-
     await loadMessages();
-}
 
+    startRealtime();
+}
 
 async function loadConversations() {
 
@@ -100,133 +64,61 @@ async function loadConversations() {
             ",seller_id.eq." +
             currentUser.id
         )
-        .order(
-            "created_at",
-            {
-                ascending: false
-            }
-        );
-
+        .order("created_at", {
+            ascending: false
+        });
 
     if (error) {
-
         console.error(error);
-
         conversationsList.innerHTML =
             "<p>تعذر تحميل المحادثات.</p>";
-
         return;
     }
-
 
     conversationsList.innerHTML = "";
 
-
-    if (
-        !conversations ||
-        conversations.length === 0
-    ) {
-
+    if (!conversations || conversations.length === 0) {
         conversationsList.innerHTML =
             "<p>لا توجد لديك محادثات حتى الآن.</p>";
-
         return;
     }
 
+    conversations.forEach(function (conversation) {
 
-    conversations.forEach(
-        function (conversation) {
+        const card = document.createElement("article");
 
-            const card =
-                document.createElement(
-                    "article"
-                );
+        card.className = "listing-card";
+        card.style.cursor = "pointer";
 
+        const title = document.createElement("h3");
 
-            card.className =
-                "listing-card";
+        title.textContent =
+            conversation.listings
+                ? conversation.listings.title
+                : "إعلان";
 
+        card.appendChild(title);
 
-            const title =
-                document.createElement(
-                    "h3"
-                );
+        const person = document.createElement("p");
 
+        person.textContent =
+            conversation.buyer_id === currentUser.id
+                ? "أنت المشتري"
+                : "أنت البائع";
 
-            title.textContent =
-                conversation.listings
-                    ? conversation.listings.title
-                    : "إعلان";
+        card.appendChild(person);
 
+        card.addEventListener("click", function () {
 
-            card.appendChild(title);
+            window.location.href =
+                "messages.html?conversation=" +
+                conversation.id;
 
+        });
 
-            const person =
-                document.createElement(
-                    "p"
-                );
-
-
-            if (
-                conversation.buyer_id ===
-                currentUser.id
-            ) {
-
-                person.textContent =
-                    "أنت المشتري";
-
-            } else {
-
-                person.textContent =
-                    "أنت البائع";
-            }
-
-
-            card.appendChild(person);
-
-
-            const date =
-                document.createElement(
-                    "small"
-                );
-
-
-            date.textContent =
-                new Date(
-                    conversation.created_at
-                ).toLocaleString(
-                    "ar-MA"
-                );
-
-
-            card.appendChild(date);
-
-
-            card.style.cursor =
-                "pointer";
-
-
-            card.addEventListener(
-                "click",
-                function () {
-
-                    window.location.href =
-                        "messages.html?conversation=" +
-                        conversation.id;
-
-                }
-            );
-
-
-            conversationsList.appendChild(
-                card
-            );
-
-        }
-    );
+        conversationsList.appendChild(card);
+    });
 }
-
 
 async function loadConversation() {
 
@@ -244,55 +136,34 @@ async function loadConversation() {
                 title
             )
         `)
-        .eq(
-            "id",
-            conversationId
-        )
+        .eq("id", conversationId)
         .single();
 
-
     if (error || !conversation) {
-
-        console.error(error);
-
         conversationInfo.textContent =
             "تعذر تحميل المحادثة.";
-
-        messageForm.style.display =
-            "none";
-
+        messageForm.style.display = "none";
         return;
     }
 
-
-    const isParticipant =
-        conversation.buyer_id === currentUser.id ||
-        conversation.seller_id === currentUser.id;
-
-
-    if (!isParticipant) {
-
+    if (
+        conversation.buyer_id !== currentUser.id &&
+        conversation.seller_id !== currentUser.id
+    ) {
         conversationInfo.textContent =
             "لا يمكنك الوصول إلى هذه المحادثة.";
-
-        messageForm.style.display =
-            "none";
-
+        messageForm.style.display = "none";
         return;
     }
-
-
-    const listingTitle =
-        conversation.listings
-            ? conversation.listings.title
-            : "الإعلان";
-
 
     conversationInfo.textContent =
         "المحادثة حول: " +
-        listingTitle;
+        (
+            conversation.listings
+                ? conversation.listings.title
+                : "الإعلان"
+        );
 }
-
 
 async function loadMessages() {
 
@@ -308,120 +179,59 @@ async function loadMessages() {
             created_at,
             is_read
         `)
-        .eq(
-            "conversation_id",
-            conversationId
-        )
-        .order(
-            "created_at",
-            {
-                ascending: true
-            }
-        );
-
+        .eq("conversation_id", conversationId)
+        .order("created_at", {
+            ascending: true
+        });
 
     if (error) {
-
         console.error(error);
-
         messagesList.innerHTML =
             "<p>تعذر تحميل الرسائل.</p>";
-
         return;
     }
-
 
     messagesList.innerHTML = "";
 
-
-    if (
-        !messages ||
-        messages.length === 0
-    ) {
-
+    if (!messages || messages.length === 0) {
         messagesList.innerHTML =
             "<p>لا توجد رسائل بعد. ابدأ المحادثة! 💬</p>";
-
         return;
     }
 
+    messages.forEach(function (message) {
 
-    messages.forEach(
-        function (message) {
+        const messageElement =
+            document.createElement("div");
 
-            const messageElement =
-                document.createElement(
-                    "div"
-                );
+        messageElement.className = "message";
 
+        messageElement.classList.add(
+            message.sender_id === currentUser.id
+                ? "my-message"
+                : "other-message"
+        );
 
-            messageElement.className =
-                "message";
+        const content = document.createElement("p");
 
+        content.textContent = message.content;
 
-            if (
-                message.sender_id ===
-                currentUser.id
-            ) {
+        messageElement.appendChild(content);
 
-                messageElement.classList.add(
-                    "my-message"
-                );
+        const date = document.createElement("small");
 
-            } else {
+        date.textContent =
+            new Date(message.created_at)
+                .toLocaleString("ar-MA");
 
-                messageElement.classList.add(
-                    "other-message"
-                );
-            }
+        messageElement.appendChild(date);
 
-
-            const content =
-                document.createElement(
-                    "p"
-                );
-
-
-            content.textContent =
-                message.content;
-
-
-            messageElement.appendChild(
-                content
-            );
-
-
-            const date =
-                document.createElement(
-                    "small"
-                );
-
-
-            date.textContent =
-                new Date(
-                    message.created_at
-                ).toLocaleString(
-                    "ar-MA"
-                );
-
-
-            messageElement.appendChild(
-                date
-            );
-
-
-            messagesList.appendChild(
-                messageElement
-            );
-
-        }
-    );
-
+        messagesList.appendChild(messageElement);
+    });
 
     messagesList.scrollTop =
         messagesList.scrollHeight;
 }
-
 
 messageForm.addEventListener(
     "submit",
@@ -429,58 +239,61 @@ messageForm.addEventListener(
 
         event.preventDefault();
 
-
         const content =
             messageInput.value.trim();
 
-
-        if (!content) {
-            return;
-        }
-
+        if (!content) return;
 
         messageStatus.textContent =
             "جاري الإرسال...";
 
-
-        const {
-            error
-        } = await supabase
-            .from("messages")
-            .insert({
-
-                conversation_id:
-                    conversationId,
-
-                sender_id:
-                    currentUser.id,
-
-                content:
-                    content
-
-            });
-
+        const { error } =
+            await supabase
+                .from("messages")
+                .insert({
+                    conversation_id: conversationId,
+                    sender_id: currentUser.id,
+                    content: content
+                });
 
         if (error) {
-
             console.error(error);
-
             messageStatus.textContent =
                 "تعذر إرسال الرسالة.";
-
             return;
         }
 
-
         messageInput.value = "";
-
         messageStatus.textContent = "";
 
-
         await loadMessages();
-
     }
 );
 
+function startRealtime() {
+
+    supabase
+        .channel(
+            "conversation-" +
+            conversationId
+        )
+        .on(
+            "postgres_changes",
+            {
+                event: "INSERT",
+                schema: "public",
+                table: "messages",
+                filter:
+                    "conversation_id=eq." +
+                    conversationId
+            },
+            function () {
+
+                loadMessages();
+
+            }
+        )
+        .subscribe();
+}
 
 initializeMessages();
