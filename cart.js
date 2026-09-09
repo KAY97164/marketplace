@@ -7,9 +7,6 @@ const cartTotal =
 const checkoutButton =
     document.getElementById("checkoutButton");
 
-const cartMessage =
-    document.getElementById("cartMessage");
-
 let currentUser = null;
 
 
@@ -22,6 +19,7 @@ async function loadCart() {
         error: userError
     } = await supabase.auth.getUser();
 
+
     if (userError || !user) {
 
         window.location.href =
@@ -29,6 +27,7 @@ async function loadCart() {
 
         return;
     }
+
 
     currentUser = user;
 
@@ -47,7 +46,9 @@ async function loadCart() {
                 title,
                 price,
                 city,
-                image_urls
+                type,
+                image_urls,
+                user_id
             )
         `)
         .eq(
@@ -72,23 +73,23 @@ async function loadCart() {
     let total = 0;
 
 
-    if (
-        !items ||
-        items.length === 0
-    ) {
+    if (!items || items.length === 0) {
 
         cartList.innerHTML =
             "<p>السلة فارغة 🛒</p>";
 
-        cartTotal.textContent = "0";
+        cartTotal.textContent =
+            "0";
 
-        checkoutButton.disabled = true;
+        checkoutButton.disabled =
+            true;
 
         return;
     }
 
 
-    checkoutButton.disabled = false;
+    checkoutButton.disabled =
+        false;
 
 
     items.forEach(function (item) {
@@ -141,38 +142,75 @@ async function loadCart() {
 
         price.textContent =
             "السعر: " +
-            listing.price +
+            Number(listing.price).toFixed(2) +
             " درهم";
 
         card.appendChild(price);
 
 
-        const city =
-            document.createElement("p");
-
-        city.textContent =
-            "المدينة: " +
-            listing.city;
-
-        card.appendChild(city);
+        const quantityContainer =
+            document.createElement("div");
 
 
-        const quantity =
-            document.createElement("p");
+        const quantityLabel =
+            document.createElement("span");
 
-        quantity.textContent =
-            "الكمية: " +
+        quantityLabel.textContent =
+            "الكمية: ";
+
+        quantityContainer.appendChild(
+            quantityLabel
+        );
+
+
+        const decreaseButton =
+            document.createElement("button");
+
+        decreaseButton.textContent =
+            "−";
+
+
+        const quantityValue =
+            document.createElement("span");
+
+        quantityValue.textContent =
             item.quantity;
 
-        card.appendChild(quantity);
+        quantityValue.style.margin =
+            "0 15px";
+
+
+        const increaseButton =
+            document.createElement("button");
+
+        increaseButton.textContent =
+            "+";
+
+
+        quantityContainer.appendChild(
+            decreaseButton
+        );
+
+        quantityContainer.appendChild(
+            quantityValue
+        );
+
+        quantityContainer.appendChild(
+            increaseButton
+        );
+
+
+        card.appendChild(
+            quantityContainer
+        );
 
 
         const itemTotal =
             Number(listing.price) *
             Number(item.quantity);
 
-
-        total += itemTotal;
+        total +=
+            itemTotal;
 
 
         const totalElement =
@@ -180,10 +218,48 @@ async function loadCart() {
 
         totalElement.textContent =
             "المجموع: " +
-            itemTotal +
+            itemTotal.toFixed(2) +
             " درهم";
 
-        card.appendChild(totalElement);
+        card.appendChild(
+            totalElement
+        );
+
+
+        decreaseButton.addEventListener(
+            "click",
+            async function () {
+
+                if (item.quantity <= 1) {
+
+                    await removeItem(
+                        item.id
+                    );
+
+                    return;
+                }
+
+
+                await updateQuantity(
+                    item.id,
+                    item.quantity - 1
+                );
+
+            }
+        );
+
+
+        increaseButton.addEventListener(
+            "click",
+            async function () {
+
+                await updateQuantity(
+                    item.id,
+                    item.quantity + 1
+                );
+
+            }
+        );
 
 
         const removeButton =
@@ -197,32 +273,10 @@ async function loadCart() {
             "click",
             async function () {
 
-                const {
-                    error
-                } = await supabase
-                    .from("cart_items")
-                    .delete()
-                    .eq(
-                        "id",
-                        item.id
-                    )
-                    .eq(
-                        "user_id",
-                        currentUser.id
-                    );
+                await removeItem(
+                    item.id
+                );
 
-
-                if (error) {
-
-                    alert(
-                        "تعذر إزالة المنتج."
-                    );
-
-                    return;
-                }
-
-
-                loadCart();
             }
         );
 
@@ -232,13 +286,91 @@ async function loadCart() {
         );
 
 
-        cartList.appendChild(card);
+        cartList.appendChild(
+            card
+        );
 
     });
 
 
     cartTotal.textContent =
         total.toFixed(2);
+
+}
+
+
+async function updateQuantity(
+    itemId,
+    quantity
+) {
+
+    const {
+        error
+    } = await supabase
+        .from("cart_items")
+        .update({
+            quantity: quantity
+        })
+        .eq(
+            "id",
+            itemId
+        )
+        .eq(
+            "user_id",
+            currentUser.id
+        );
+
+
+    if (error) {
+
+        console.error(error);
+
+        alert(
+            "تعذر تحديث الكمية."
+        );
+
+        return;
+    }
+
+
+    await loadCart();
+
+}
+
+
+async function removeItem(
+    itemId
+) {
+
+    const {
+        error
+    } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq(
+            "id",
+            itemId
+        )
+        .eq(
+            "user_id",
+            currentUser.id
+        );
+
+
+    if (error) {
+
+        console.error(error);
+
+        alert(
+            "تعذر إزالة المنتج."
+        );
+
+        return;
+    }
+
+
+    await loadCart();
+
 }
 
 
