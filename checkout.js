@@ -4,8 +4,14 @@ const checkoutList =
 const checkoutTotal =
     document.getElementById("checkoutTotal");
 
-const confirmOrderButton =
-    document.getElementById("confirmOrderButton");
+const checkoutForm =
+    document.getElementById("checkoutForm");
+
+const shippingAddress =
+    document.getElementById("shippingAddress");
+
+const paymentMethod =
+    document.getElementById("paymentMethod");
 
 const checkoutMessage =
     document.getElementById("checkoutMessage");
@@ -65,20 +71,23 @@ async function loadCheckout() {
         checkoutList.innerHTML =
             "<p>تعذر تحميل الطلب.</p>";
 
-        confirmOrderButton.disabled = true;
+        checkoutForm.style.display =
+            "none";
 
         return;
     }
 
 
-    cartItems = (items || []).filter(function (item) {
+    cartItems =
+        (items || []).filter(function (item) {
 
-        return (
-            item.listings &&
-            item.listings.type === "product"
-        );
+            return (
+                item.listings &&
+                item.listings.type === "product" &&
+                item.listings.user_id !== currentUser.id
+            );
 
-    });
+        });
 
 
     checkoutList.innerHTML = "";
@@ -87,11 +96,13 @@ async function loadCheckout() {
     if (cartItems.length === 0) {
 
         checkoutList.innerHTML =
-            "<p>لا توجد منتجات قابلة للطلب في السلة.</p>";
+            "<p>لا توجد منتجات قابلة للطلب.</p>";
 
-        checkoutTotal.textContent = "0";
+        checkoutTotal.textContent =
+            "0";
 
-        confirmOrderButton.disabled = true;
+        checkoutForm.style.display =
+            "none";
 
         return;
     }
@@ -104,7 +115,6 @@ async function loadCheckout() {
 
         const listing =
             item.listings;
-
 
         const card =
             document.createElement("article");
@@ -143,48 +153,29 @@ async function loadCheckout() {
         const price =
             Number(listing.price);
 
-
         const quantity =
             Number(item.quantity);
-
 
         const itemTotal =
             price * quantity;
 
+        total +=
+            itemTotal;
 
-        total += itemTotal;
 
-
-        const priceElement =
+        const details =
             document.createElement("p");
 
-        priceElement.textContent =
+        details.textContent =
             "السعر: " +
             price +
-            " درهم";
-
-        card.appendChild(priceElement);
-
-
-        const quantityElement =
-            document.createElement("p");
-
-        quantityElement.textContent =
-            "الكمية: " +
-            quantity;
-
-        card.appendChild(quantityElement);
-
-
-        const totalElement =
-            document.createElement("p");
-
-        totalElement.textContent =
-            "المجموع: " +
+            " درهم × " +
+            quantity +
+            " = " +
             itemTotal.toFixed(2) +
             " درهم";
 
-        card.appendChild(totalElement);
+        card.appendChild(details);
 
 
         checkoutList.appendChild(card);
@@ -198,23 +189,53 @@ async function loadCheckout() {
 }
 
 
-confirmOrderButton.addEventListener(
-    "click",
-    async function () {
+checkoutForm.addEventListener(
+    "submit",
+    async function (event) {
 
-        if (!currentUser) {
+        event.preventDefault();
+
+
+        const address =
+            shippingAddress.value.trim();
+
+        const method =
+            paymentMethod.value;
+
+
+        if (!address) {
+
+            checkoutMessage.textContent =
+                "اكتبي عنوان التوصيل.";
+
             return;
         }
 
 
-        if (cartItems.length === 0) {
+        if (!method) {
+
+            checkoutMessage.textContent =
+                "اختاري طريقة الدفع.";
+
+            return;
+        }
+
+
+        if (
+            !cartItems ||
+            cartItems.length === 0
+        ) {
+
+            checkoutMessage.textContent =
+                "السلة فارغة.";
+
             return;
         }
 
 
         const confirmed =
             confirm(
-                "هل تريدين تأكيد هذا الطلب؟"
+                "هل تريدين تأكيد الطلب؟"
             );
 
 
@@ -223,7 +244,14 @@ confirmOrderButton.addEventListener(
         }
 
 
-        confirmOrderButton.disabled = true;
+        const submitButton =
+            checkoutForm.querySelector(
+                "button[type='submit']"
+            );
+
+
+        submitButton.disabled =
+            true;
 
         checkoutMessage.textContent =
             "جاري إنشاء الطلب...";
@@ -257,7 +285,16 @@ confirmOrderButton.addEventListener(
                         total,
 
                     status:
-                        "pending"
+                        "pending",
+
+                    payment_status:
+                        "unpaid",
+
+                    payment_method:
+                        method,
+
+                    shipping_address:
+                        address
 
                 })
                 .select()
@@ -284,7 +321,7 @@ confirmOrderButton.addEventListener(
                             item.listings.user_id,
 
                         quantity:
-                            item.quantity,
+                            Number(item.quantity),
 
                         price:
                             Number(item.listings.price)
@@ -342,7 +379,7 @@ confirmOrderButton.addEventListener(
                 "حدث خطأ أثناء إنشاء الطلب: " +
                 error.message;
 
-            confirmOrderButton.disabled =
+            submitButton.disabled =
                 false;
 
         }
