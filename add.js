@@ -5,17 +5,28 @@ form.addEventListener("submit", async function (event) {
 
     const type = document.getElementById("type").value;
     const title = document.getElementById("title").value.trim();
-    const price = document.getElementById("price").value;
+    const price = Number(document.getElementById("price").value);
+    const currency = document.getElementById("currency").value;
+    const country = document.getElementById("country").value.trim();
     const city = document.getElementById("city").value.trim();
     const description = document.getElementById("description").value.trim();
     const images = document.getElementById("images").files;
 
-    if (images.length === 0) {
-        alert("يرجى اختيار صورة واحدة على الأقل");
+    if (!title || !country || !city || !description) {
+        alert("يرجى ملء جميع البيانات.");
         return;
     }
 
-    // معرفة المستخدم الحالي
+    if (!Number.isFinite(price) || price < 0) {
+        alert("يرجى إدخال سعر صحيح.");
+        return;
+    }
+
+    if (images.length === 0) {
+        alert("يرجى اختيار صورة واحدة على الأقل.");
+        return;
+    }
+
     const {
         data: { user },
         error: userError
@@ -28,24 +39,22 @@ form.addEventListener("submit", async function (event) {
     }
 
     try {
-
-        // 1. إنشاء الإعلان في قاعدة البيانات أولًا
-        const {
-            data: listing,
-            error: listingError
-        } = await supabase
-            .from("listings")
-            .insert({
-                title: title,
-                type: type,
-                price: price,
-                city: city,
-                description: description,
-                user_id: user.id,
-                image_urls: []
-            })
-            .select()
-            .single();
+        const { data: listing, error: listingError } =
+            await supabase
+                .from("listings")
+                .insert({
+                    title: title,
+                    type: type,
+                    price: price,
+                    currency: currency,
+                    country: country,
+                    city: city,
+                    description: description,
+                    user_id: user.id,
+                    image_urls: []
+                })
+                .select()
+                .single();
 
         if (listingError) {
             throw listingError;
@@ -53,61 +62,62 @@ form.addEventListener("submit", async function (event) {
 
         const imageUrls = [];
 
-        // 2. رفع الصور
         for (let i = 0; i < images.length; i++) {
-
             const image = images[i];
 
-            const fileName =
-                user.id + "/" +
-                listing.id + "/" +
-                Date.now() + "-" +
-                image.name;
+            const safeName = image.name
+                .replace(/[^a-zA-Z0-9._-]/g, "_");
 
-            const {
-                error: uploadError
-            } = await supabase
-                .storage
-                .from("listing-images")
-                .upload(fileName, image);
+            const fileName =
+                user.id +
+                "/" +
+                listing.id +
+                "/" +
+                Date.now() +
+                "-" +
+                i +
+                "-" +
+                safeName;
+
+            const { error: uploadError } =
+                await supabase
+                    .storage
+                    .from("listing-images")
+                    .upload(fileName, image);
 
             if (uploadError) {
                 throw uploadError;
             }
 
-            // 3. الحصول على الرابط العام للصورة
-            const {
-                data: publicUrlData
-            } = supabase
-                .storage
-                .from("listing-images")
-                .getPublicUrl(fileName);
+            const { data: publicUrlData } =
+                supabase
+                    .storage
+                    .from("listing-images")
+                    .getPublicUrl(fileName);
 
             imageUrls.push(publicUrlData.publicUrl);
         }
 
-        // 4. حفظ روابط الصور داخل الإعلان
-        const {
-            error: updateError
-        } = await supabase
-            .from("listings")
-            .update({
-                image_urls: imageUrls
-            })
-            .eq("id", listing.id);
+        const { error: updateError } =
+            await supabase
+                .from("listings")
+                .update({
+                    image_urls: imageUrls
+                })
+                .eq("id", listing.id)
+                .eq("user_id", user.id);
 
         if (updateError) {
             throw updateError;
         }
 
-        alert("تم نشر الإعلان بنجاح! 🎉");
+        alert("تم نشر الإعلان بنجاح! 🌍🎉");
 
         form.reset();
 
         window.location.href = "index.html";
 
     } catch (error) {
-
         console.error(error);
 
         alert(
