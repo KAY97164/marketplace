@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>المفضلة - Chronet</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+<body>
+
+    <header>
+
+        <h1>Chronet</h1>
+
+        <p>إعلاناتي المفضلة ❤️</p>
+
+    </header>
+
+
+    <nav>
+
+        <a href="index.html">
+            الرئيسية
+        </a>
+
+        <a href="add.html">
+            أضف إعلانًا
+        </a>
+
+        <a href="profile.html">
+            حسابي
+        </a>
+
+        <a href="favorites.html">
+            المفضلة ❤️
+        </a>
+
+    </nav>
+
+
+    <main>
+
+        <h2>
+            إعلاناتي المفضلة
+        </h2>
+
+        <div id="favoritesContainer">
+
+            <p>
+                جاري تحميل المفضلة...
+            </p>
+
+        </div>
+
+    </main>
+
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
+
+    <script src="supabase.js"></script>
+
+    <script src="favorites.js"></script>
+
+</body>
+
+</html>
