@@ -37,7 +37,12 @@ async function loadListings() {
         const card = document.createElement("article");
 
         card.className = "listing-card";
+card.style.cursor = "pointer";
 
+card.addEventListener("click", function () {
+    window.location.href =
+        "listing.html?id=" + listing.id;
+});
         let imageHTML = "";
 
         if (
