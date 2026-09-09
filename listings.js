@@ -1,764 +1,503 @@
-const listingDetails =
-    document.getElementById("listingDetails");
+const listingDetails = document.getElementById("listingDetails");
 
+const params = new URLSearchParams(window.location.search);
+const listingId = params.get("id");
+
+let currentUser = null;
+let currentListing = null;
+
+async function getCurrentUser() {
+const { data, error } = await supabase.auth.getUser();
+
+if (error) {
+    console.error(error);
+    return null;
+}
+
+return data.user || null;
+
+}
+
+function createElement(tag, text, className) {
+const element = document.createElement(tag);
+
+if (text !== undefined && text !== null) {
+    element.textContent = text;
+}
+
+if (className) {
+    element.className = className;
+}
+
+return element;
+
+}
 
 async function loadListing() {
-
-    const params =
-        new URLSearchParams(
-            window.location.search
-        );
-
-    const listingId =
-        params.get("id");
-
-
-    if (!listingId) {
-
-        listingDetails.innerHTML =
-            "<p>لم يتم تحديد الإعلان.</p>";
-
-        return;
-    }
-
-
-    const {
-        data: listing,
-        error
-    } = await supabase
-        .from("listings")
-        .select("*")
-        .eq("id", listingId)
-        .single();
-
-
-    if (error || !listing) {
-
-        console.error(error);
-
-        listingDetails.innerHTML =
-            "<p>تعذر تحميل الإعلان.</p>";
-
-        return;
-    }
-
-
-    const {
-        data: {
-            user: currentUser
-        }
-    } = await supabase.auth.getUser();
-
-
-    let isFavorite = false;
-
-
-    if (currentUser) {
-
-        const {
-            data: favorite
-        } = await supabase
-            .from("favorites")
-            .select("id")
-            .eq(
-                "user_id",
-                currentUser.id
-            )
-            .eq(
-                "listing_id",
-                listing.id
-            )
-            .maybeSingle();
-
-
-        isFavorite = !!favorite;
-    }
-
-
-    listingDetails.innerHTML = "";
-
-
-    if (
-        listing.image_urls &&
-        listing.image_urls.length > 0
-    ) {
-
-        const imagesContainer =
-            document.createElement("div");
-
-        imagesContainer.className =
-            "listing-images";
-
-
-        listing.image_urls.forEach(
-            function (url) {
-
-                const image =
-                    document.createElement("img");
-
-                image.src = url;
-                image.alt = listing.title;
-
-                imagesContainer.appendChild(
-                    image
-                );
-            }
-        );
-
-
-        listingDetails.appendChild(
-            imagesContainer
-        );
-    }
-
-
-    const title =
-        document.createElement("h2");
-
-    title.textContent =
-        listing.title;
-
-    listingDetails.appendChild(title);
-
-
-    const price =
-        document.createElement("p");
-
-    price.textContent =
-        "السعر: " +
-        listing.price +
-        " درهم";
-
-    listingDetails.appendChild(price);
-
-
-    const city =
-        document.createElement("p");
-
-    city.textContent =
-        "المدينة: " +
-        listing.city;
-
-    listingDetails.appendChild(city);
-
-
-    const type =
-        document.createElement("p");
-
-    type.textContent =
-        "النوع: " +
-        (
-            listing.type === "product"
-                ? "منتج"
-                : "خدمة"
-        );
-
-    listingDetails.appendChild(type);
-
-
-    const descriptionTitle =
-        document.createElement("h3");
-
-    descriptionTitle.textContent =
-        "الوصف";
-
-    listingDetails.appendChild(
-        descriptionTitle
-    );
-
-
-    const description =
-        document.createElement("p");
-
-    description.textContent =
-        listing.description || "";
-
-    listingDetails.appendChild(
-        description
-    );
-
-
-    const favoriteButton =
-        document.createElement("button");
-
-    favoriteButton.id =
-        "favoriteButton";
-
-    favoriteButton.textContent =
-        isFavorite
-            ? "❤️ إزالة من المفضلة"
-            : "♡ إضافة إلى المفضلة";
-
-    listingDetails.appendChild(
-        favoriteButton
-    );
-
-
-    const cartButton =
-        document.createElement("button");
-
-    cartButton.id =
-        "addToCartButton";
-
-    cartButton.textContent =
-        "🛒 أضف إلى السلة";
-
-    listingDetails.appendChild(
-        cartButton
-    );
-
-
-    const contactButton =
-        document.createElement("button");
-
-    contactButton.id =
-        "contactSeller";
-
-    contactButton.textContent =
-        "تواصل مع البائع";
-
-    listingDetails.appendChild(
-        contactButton
-    );
-
-
-    const separator =
-        document.createElement("hr");
-
-    listingDetails.appendChild(
-        separator
-    );
-
-
-    const reviewsSection =
-        document.createElement("section");
-
-    reviewsSection.id =
-        "reviewsSection";
-
-
-    reviewsSection.innerHTML = `
-        <h2>⭐ التقييمات والتعليقات</h2>
-
-        <div id="reviewsSummary">
-            جاري تحميل التقييمات...
-        </div>
-
-        <div id="reviewsList">
-            جاري تحميل التعليقات...
-        </div>
-
-        <div id="reviewFormContainer"></div>
-    `;
-
-
-    listingDetails.appendChild(
-        reviewsSection
-    );
-
-
-    setupFavoriteButton(
-        listing,
-        currentUser,
-        isFavorite
-    );
-
-
-    cartButton.addEventListener(
-        "click",
-        async function () {
-
-            if (!currentUser) {
-
-                alert(
-                    "يجب تسجيل الدخول أولًا."
-                );
-
-                window.location.href =
-                    "auth.html";
-
-                return;
-            }
-
-
-            if (
-                currentUser.id ===
-                listing.user_id
-            ) {
-
-                alert(
-                    "لا يمكنك إضافة إعلانك إلى سلتك."
-                );
-
-                return;
-            }
-
-
-            const {
-                error
-            } = await supabase
-                .from("cart_items")
-                .insert({
-                    user_id:
-                        currentUser.id,
-
-                    listing_id:
-                        listing.id,
-
-                    quantity: 1
-                });
-
-
-            if (error) {
-
-                if (
-                    error.code === "23505"
-                ) {
-
-                    alert(
-                        "هذا الإعلان موجود بالفعل في السلة."
-                    );
-
-                } else {
-
-                    console.error(error);
-
-                    alert(
-                        "حدث خطأ أثناء إضافة الإعلان."
-                    );
-                }
-
-                return;
-            }
-
-
-            alert(
-                "تمت إضافة الإعلان إلى السلة 🛒"
-            );
-        }
-    );
-
-
-    contactButton.addEventListener(
-        "click",
-        async function () {
-
-            if (!currentUser) {
-
-                alert(
-                    "يجب تسجيل الدخول أولًا للتواصل مع البائع."
-                );
-
-                window.location.href =
-                    "auth.html";
-
-                return;
-            }
-
-
-            if (
-                currentUser.id ===
-                listing.user_id
-            ) {
-
-                alert(
-                    "لا يمكنك مراسلة نفسك."
-                );
-
-                return;
-            }
-
-
-            const {
-                data: existingConversation,
-                error: findError
-            } = await supabase
-                .from("conversations")
-                .select("id")
-                .eq(
-                    "buyer_id",
-                    currentUser.id
-                )
-                .eq(
-                    "seller_id",
-                    listing.user_id
-                )
-                .eq(
-                    "listing_id",
-                    listing.id
-                )
-                .maybeSingle();
-
-
-            if (findError) {
-
-                console.error(findError);
-
-                alert(
-                    "حدث خطأ أثناء فتح المحادثة."
-                );
-
-                return;
-            }
-
-
-            if (existingConversation) {
-
-                window.location.href =
-                    "messages.html?conversation=" +
-                    existingConversation.id;
-
-                return;
-            }
-
-
-            const {
-                data: newConversation,
-                error: createError
-            } = await supabase
-                .from("conversations")
-                .insert({
-
-                    buyer_id:
-                        currentUser.id,
-
-                    seller_id:
-                        listing.user_id,
-
-                    listing_id:
-                        listing.id
-                })
-                .select("id")
-                .single();
-
-
-            if (createError) {
-
-                console.error(createError);
-
-                alert(
-                    "حدث خطأ أثناء إنشاء المحادثة."
-                );
-
-                return;
-            }
-
-
-            window.location.href =
-                "messages.html?conversation=" +
-                newConversation.id;
-        }
-    );
-
-
-    await loadReviews(
-        listing.id,
-        currentUser
-    );
+if (!listingId) {
+listingDetails.textContent = "الإعلان غير موجود.";
+return;
 }
 
+const { data: listing, error } = await supabase
+    .from("listings")
+    .select("*")
+    .eq("id", listingId)
+    .single();
 
-function setupFavoriteButton(
-    listing,
-    currentUser,
-    isFavorite
-) {
-
-    const button =
-        document.getElementById(
-            "favoriteButton"
-        );
-
-    let favoriteState =
-        isFavorite;
-
-
-    button.addEventListener(
-        "click",
-        async function () {
-
-            if (!currentUser) {
-
-                alert(
-                    "يجب تسجيل الدخول أولًا."
-                );
-
-                window.location.href =
-                    "auth.html";
-
-                return;
-            }
-
-
-            if (favoriteState) {
-
-                const {
-                    error
-                } = await supabase
-                    .from("favorites")
-                    .delete()
-                    .eq(
-                        "user_id",
-                        currentUser.id
-                    )
-                    .eq(
-                        "listing_id",
-                        listing.id
-                    );
-
-
-                if (error) {
-
-                    console.error(error);
-
-                    alert(
-                        "حدث خطأ أثناء إزالة الإعلان."
-                    );
-
-                    return;
-                }
-
-
-                favoriteState = false;
-
-                button.textContent =
-                    "♡ إضافة إلى المفضلة";
-
-            } else {
-
-                const {
-                    error
-                } = await supabase
-                    .from("favorites")
-                    .insert({
-
-                        user_id:
-                            currentUser.id,
-
-                        listing_id:
-                            listing.id
-                    });
-
-
-                if (error) {
-
-                    console.error(error);
-
-                    alert(
-                        "حدث خطأ أثناء إضافة الإعلان."
-                    );
-
-                    return;
-                }
-
-
-                favoriteState = true;
-
-                button.textContent =
-                    "❤️ إزالة من المفضلة";
-            }
-        }
-    );
+if (error || !listing) {
+    console.error(error);
+    listingDetails.textContent = "تعذر تحميل الإعلان.";
+    return;
 }
 
+currentListing = listing;
 
-async function loadReviews(
-    listingId,
-    currentUser
-) {
+listingDetails.innerHTML = "";
 
-    const reviewsSummary =
-        document.getElementById(
-            "reviewsSummary"
-        );
+const title = createElement("h2", listing.title);
+listingDetails.appendChild(title);
 
-    const reviewsList =
-        document.getElementById(
-            "reviewsList"
-        );
+if (listing.image_urls && listing.image_urls.length > 0) {
+    const gallery = document.createElement("div");
+    gallery.className = "listing-gallery";
 
-    const reviewFormContainer =
-        document.getElementById(
-            "reviewFormContainer"
-        );
+    listing.image_urls.forEach(function (url) {
+        const image = document.createElement("img");
+        image.src = url;
+        image.alt = listing.title;
+        image.loading = "lazy";
+        gallery.appendChild(image);
+    });
 
+    listingDetails.appendChild(gallery);
+}
 
-    const {
-        data: reviews,
-        error
-    } = await supabase
-        .from("reviews")
-        .select(`
-            id,
-            user_id,
-            rating,
-            comment,
-            created_at
-        `)
-        .eq(
-            "listing_id",
-            listingId
-        )
-        .order(
-            "created_at",
-            {
-                ascending: false
-            }
-        );
+const price = createElement(
+    "p",
+    "السعر: " + Number(listing.price).toFixed(2) + " درهم"
+);
+listingDetails.appendChild(price);
 
+const city = createElement(
+    "p",
+    "المدينة: " + (listing.city || "غير محددة")
+);
+listingDetails.appendChild(city);
+
+const type = createElement(
+    "p",
+    "النوع: " + (listing.type === "product" ? "منتج" : "خدمة")
+);
+listingDetails.appendChild(type);
+
+const description = createElement(
+    "p",
+    listing.description || "لا يوجد وصف."
+);
+listingDetails.appendChild(description);
+
+const actions = document.createElement("div");
+
+const favoriteButton = document.createElement("button");
+favoriteButton.textContent = "❤️ إضافة إلى المفضلة";
+favoriteButton.addEventListener("click", toggleFavorite);
+actions.appendChild(favoriteButton);
+
+const cartButton = document.createElement("button");
+cartButton.textContent = "🛒 إضافة إلى السلة";
+cartButton.addEventListener("click", addToCart);
+actions.appendChild(cartButton);
+
+const contactButton = document.createElement("button");
+contactButton.textContent = "💬 التواصل مع البائع";
+contactButton.addEventListener("click", contactSeller);
+actions.appendChild(contactButton);
+
+const reportButton = document.createElement("button");
+reportButton.textContent = "🚩 الإبلاغ عن الإعلان";
+reportButton.addEventListener("click", reportListing);
+actions.appendChild(reportButton);
+
+listingDetails.appendChild(actions);
+
+await loadReviews();
+
+}
+
+async function toggleFavorite() {
+if (!currentUser) {
+alert("يجب تسجيل الدخول أولًا.");
+window.location.href = "auth.html";
+return;
+}
+
+const { data: existing } = await supabase
+    .from("favorites")
+    .select("id")
+    .eq("user_id", currentUser.id)
+    .eq("listing_id", currentListing.id)
+    .maybeSingle();
+
+if (existing) {
+    const { error } = await supabase
+        .from("favorites")
+        .delete()
+        .eq("id", existing.id)
+        .eq("user_id", currentUser.id);
 
     if (error) {
-
-        console.error(error);
-
-        reviewsSummary.innerHTML =
-            "<p>تعذر تحميل التقييمات.</p>";
-
-        reviewsList.innerHTML = "";
-
+        alert("تعذر إزالة الإعلان من المفضلة.");
         return;
     }
 
+    alert("تمت إزالة الإعلان من المفضلة.");
+} else {
+    const { error } = await supabase
+        .from("favorites")
+        .insert({
+            user_id: currentUser.id,
+            listing_id: currentListing.id
+        });
 
-    if (
-        !reviews ||
-        reviews.length === 0
-    ) {
-
-        reviewsSummary.innerHTML =
-            "<p>لا توجد تقييمات لهذا الإعلان بعد.</p>";
-
-    } else {
-
-        const total =
-            reviews.reduce(
-                function (sum, review) {
-
-                    return sum +
-                        review.rating;
-
-                },
-                0
-            );
-
-
-        const average =
-            total / reviews.length;
-
-
-        reviewsSummary.innerHTML = `
-            <h3>
-                ⭐ ${average.toFixed(1)} / 5
-            </h3>
-
-            <p>
-                بناءً على ${reviews.length}
-                تقييم
-            </p>
-        `;
+    if (error) {
+        alert("تعذر إضافة الإعلان إلى المفضلة.");
+        return;
     }
 
+    alert("تمت إضافة الإعلان إلى المفضلة ❤️");
+}
 
-    reviewsList.innerHTML = "";
+}
 
+async function addToCart() {
+if (!currentUser) {
+alert("يجب تسجيل الدخول أولًا.");
+window.location.href = "auth.html";
+return;
+}
 
-    if (
-        reviews &&
-        reviews.length > 0
-    ) {
+if (currentListing.user_id === currentUser.id) {
+    alert("لا يمكنك إضافة إعلانك الخاص إلى السلة.");
+    return;
+}
 
-        reviews.forEach(
-            function (review) {
+if (currentListing.type !== "product") {
+    alert("الخدمات لا يمكن إضافتها إلى السلة.");
+    return;
+}
 
-                const reviewElement =
-                    document.createElement(
-                        "article"
-                    );
+const { data: existing } = await supabase
+    .from("cart_items")
+    .select("id, quantity")
+    .eq("user_id", currentUser.id)
+    .eq("listing_id", currentListing.id)
+    .maybeSingle();
 
+if (existing) {
+    const { error } = await supabase
+        .from("cart_items")
+        .update({
+            quantity: existing.quantity + 1
+        })
+        .eq("id", existing.id)
+        .eq("user_id", currentUser.id);
 
-                reviewElement.className =
-                    "review-card";
+    if (error) {
+        alert("تعذر تحديث السلة.");
+        return;
+    }
+} else {
+    const { error } = await supabase
+        .from("cart_items")
+        .insert({
+            user_id: currentUser.id,
+            listing_id: currentListing.id,
+            quantity: 1
+        });
 
+    if (error) {
+        alert("تعذر إضافة المنتج إلى السلة.");
+        return;
+    }
+}
 
-                const rating =
-                    document.createElement(
-                        "h4"
-                    );
+alert("تمت إضافة المنتج إلى السلة 🛒");
 
+}
 
-                rating.textContent =
-                    "⭐".repeat(
-                        review.rating
-                    );
+async function contactSeller() {
+if (!currentUser) {
+alert("يجب تسجيل الدخول أولًا.");
+window.location.href = "auth.html";
+return;
+}
 
+if (currentListing.user_id === currentUser.id) {
+    alert("هذا إعلانك.");
+    return;
+}
 
-                reviewElement.appendChild(
-                    rating
-                );
+const { data: existing } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("buyer_id", currentUser.id)
+    .eq("seller_id", currentListing.user_id)
+    .eq("listing_id", currentListing.id)
+    .maybeSingle();
 
+if (existing) {
+    window.location.href =
+        "messages.html?conversation=" + existing.id;
+    return;
+}
 
-                const comment =
-                    document.createElement(
-                        "p"
-                    );
+const { data: conversation, error } = await supabase
+    .from("conversations")
+    .insert({
+        buyer_id: currentUser.id,
+        seller_id: currentListing.user_id,
+        listing_id: currentListing.id
+    })
+    .select()
+    .single();
 
+if (error) {
+    console.error(error);
+    alert("تعذر إنشاء المحادثة.");
+    return;
+}
 
-                comment.textContent =
-                    review.comment ||
-                    "بدون تعليق";
+window.location.href =
+    "messages.html?conversation=" + conversation.id;
 
+}
 
-                reviewElement.appendChild(
-                    comment
-                );
+async function reportListing() {
+if (!currentUser) {
+alert("يجب تسجيل الدخول أولًا للإبلاغ عن إعلان.");
+window.location.href = "auth.html";
+return;
+}
 
+if (currentListing.user_id === currentUser.id) {
+    alert("لا يمكنك الإبلاغ عن إعلانك الخاص.");
+    return;
+}
 
-                if (
-                    currentUser &&
-                    currentUser.id ===
-                    review.user_id
-                ) {
+const reason = prompt(
+    "سبب البلاغ:\n\n" +
+    "1 - إعلان مزيف أو احتيالي\n" +
+    "2 - محتوى ممنوع\n" +
+    "3 - معلومات مضللة\n" +
+    "4 - إعلان مكرر\n" +
+    "5 - سبب آخر\n\n" +
+    "اكتبي رقم السبب:"
+);
 
-                    const deleteButton =
-                        document.createElement(
-                            "button"
-                        );
+if (!reason) return;
 
+const reasons = {
+    "1": "إعلان مزيف أو احتيالي",
+    "2": "محتوى ممنوع",
+    "3": "معلومات مضللة",
+    "4": "إعلان مكرر",
+    "5": "سبب آخر"
+};
 
-                    deleteButton.textContent =
-                        "حذف تقييمي";
+if (!reasons[reason.trim()]) {
+    alert("اختاري رقمًا من 1 إلى 5.");
+    return;
+}
 
+let details = "";
 
-                    deleteButton.addEventListener(
-                        "click",
-                        async function () {
+if (reason.trim() === "5") {
+    details = prompt("اكتبي سبب البلاغ:") || "";
+}
 
-                            const confirmed =
-                                confirm(
-                                    "هل تريد حذف تقييمك؟"
-                                );
+const { error } = await supabase
+    .from("reports")
+    .insert({
+        user_id: currentUser.id,
+        listing_id: currentListing.id,
+        reason: reasons[reason.trim()],
+        details: details.trim()
+    });
 
+if (error) {
+    if (error.code === "23505") {
+        alert("لقد أبلغتِ عن هذا الإعلان من قبل.");
+    } else {
+        console.error(error);
+        alert("تعذر إرسال البلاغ.");
+    }
+    return;
+}
 
-                            if (!confirmed) {
-                                return;
-                            }
+alert("تم إرسال البلاغ بنجاح 🚩");
 
+}
 
-                            const {
-                                error
-                            } = await supabase
-                                .from("reviews")
-                                .delete()
-                                .eq(
-                                    "id",
-                                    review.id
-                                )
-                                .eq(
-                                    "user_id",
-                                    currentUser.id
-                                );
+async function loadReviews() {
+const section = document.createElement("section");
 
+const heading = createElement("h3", "التقييمات والتعليقات ⭐");
+section.appendChild(heading);
 
-                            if (error) {
+const { data: reviews, error } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("listing_id", currentListing.id)
+    .order("created_at", { ascending: false });
 
-                                alert(
+if (error) {
+    console.error(error);
+    section.appendChild(
+        createElement("p", "تعذر تحميل التقييمات.")
+    );
+    listingDetails.appendChild(section);
+    return;
+}
+
+if (!reviews || reviews.length === 0) {
+    section.appendChild(
+        createElement("p", "لا توجد تقييمات حتى الآن.")
+    );
+} else {
+    const average =
+        reviews.reduce(function (sum, review) {
+            return sum + review.rating;
+        }, 0) / reviews.length;
+
+    section.appendChild(
+        createElement(
+            "p",
+            "متوسط التقييم: " +
+            average.toFixed(1) +
+            " ⭐ (" +
+            reviews.length +
+            " تقييم)"
+        )
+    );
+
+    reviews.forEach(function (review) {
+        const box = document.createElement("div");
+
+        const rating = createElement(
+            "strong",
+            "⭐".repeat(review.rating)
+        );
+
+        const comment = createElement(
+            "p",
+            review.comment || ""
+        );
+
+        box.appendChild(rating);
+        box.appendChild(comment);
+
+        if (
+            currentUser &&
+            review.user_id === currentUser.id
+        ) {
+            const deleteButton =
+                document.createElement("button");
+
+            deleteButton.textContent =
+                "حذف تقييمي";
+
+            deleteButton.addEventListener(
+                "click",
+                async function () {
+
+                    const { error } =
+                        await supabase
+                            .from("reviews")
+                            .delete()
+                            .eq("id", review.id)
+                            .eq(
+                                "user_id",
+                                currentUser.id
+                            );
+
+                    if (error) {
+                        alert("تعذر حذف التقييم.");
+                        return;
+                    }
+
+                    await loadListing();
+                }
+            );
+
+            box.appendChild(deleteButton);
+        }
+
+        section.appendChild(box);
+    });
+}
+
+if (currentUser && currentListing.user_id !== currentUser.id) {
+    const reviewForm = document.createElement("form");
+
+    const rating = document.createElement("select");
+    rating.required = true;
+
+    for (let i = 1; i <= 5; i++) {
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = i + " ⭐";
+        rating.appendChild(option);
+    }
+
+    const comment = document.createElement("textarea");
+    comment.placeholder = "اكتبي تعليقك...";
+    comment.maxLength = 1000;
+
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    submit.textContent = "إضافة تقييم";
+
+    reviewForm.appendChild(rating);
+    reviewForm.appendChild(comment);
+    reviewForm.appendChild(submit);
+
+    reviewForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const { error } = await supabase
+            .from("reviews")
+            .insert({
+                user_id: currentUser.id,
+                listing_id: currentListing.id,
+                rating: Number(rating.value),
+                comment: comment.value.trim()
+            });
+
+        if (error) {
+            if (error.code === "23505") {
+                alert("لقد قيّمتِ هذا الإعلان من قبل.");
+            } else {
+                console.error(error);
+                alert("تعذر إضافة التقييم.");
+            }
+            return;
+        }
+
+        alert("تمت إضافة تقييمك ⭐");
+        await loadListing();
+    });
+
+    section.appendChild(reviewForm);
+}
+
+listingDetails.appendChild(section);
+
+}
+
+async function start() {
+currentUser = await getCurrentUser();
+await loadListing();
+}
+
+start();
