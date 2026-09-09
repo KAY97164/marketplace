@@ -4,52 +4,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>حسابي - Chronet</title>
-
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <header>
-        <h1>Chronet</h1>
-        <p>حسابي</p>
-    </header>
+<header>
+    <h1>Chronet</h1>
+    <p>حسابي 👤</p>
+</header>
 
-    <nav>
-        <a href="index.html">الرئيسية</a>
-        <a href="add.html">أضف إعلانًا</a>
-        <a href="profile.html">حسابي</a>
-    </nav>
+<nav>
+    <a href="index.html">الرئيسية</a>
+    <a href="add.html">أضف إعلانًا</a>
+    <a href="profile.html">حسابي</a>
+    <a href="favorites.html">المفضلة ❤️</a>
+    <a href="messages.html">الرسائل 💬</a>
+    <a href="notifications.html">الإشعارات 🔔</a>
+    <a href="cart.html">السلة 🛒</a>
+    <a href="orders.html">طلباتي 📦</a>
+    <a href="seller-orders.html">طلبات البيع 📦</a>
+</nav>
 
-    <main>
+<main>
 
-        <section id="profileInfo">
-            <h2>حسابي</h2>
-            <p id="userEmail">جاري تحميل الحساب...</p>
+    <section id="profileInfo">
 
-            <button id="logoutButton">
-                تسجيل الخروج
+        <h2>ملفي الشخصي</h2>
+
+        <div id="avatarContainer">
+            <p>جاري تحميل الصورة...</p>
+        </div>
+
+        <p id="userEmail">
+            جاري تحميل الحساب...
+        </p>
+
+        <form id="profileForm">
+
+            <label for="username">
+                اسم المستخدم
+            </label>
+
+            <input
+                type="text"
+                id="username"
+                minlength="3"
+                maxlength="30"
+                required
+                placeholder="اسم المستخدم"
+            >
+
+            <label for="avatar">
+                الصورة الشخصية
+            </label>
+
+            <input
+                type="file"
+                id="avatar"
+                accept="image/*"
+            >
+
+            <button type="submit">
+                حفظ الملف الشخصي
             </button>
-        </section>
 
-        <section>
+        </form>
 
-            <h2>إعلاناتي</h2>
+        <p id="profileMessage"></p>
 
-            <div id="myListings">
-                <p>جاري تحميل إعلاناتك...</p>
-            </div>
+        <button id="logoutButton">
+            تسجيل الخروج
+        </button>
 
-        </section>
+    </section>
 
-    </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase.js"></script>
-    <script src="profile.js"></script>
+    <section>
+
+        <h2>إعلاناتي</h2>
+
+        <div id="myListings">
+            <p>جاري تحميل إعلاناتك...</p>
+        </div>
+
+    </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="profile.js"></script>
 
 </body>
-
 </html>
