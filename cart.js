@@ -1,107 +1,121 @@
-const cartList =
-    document.getElementById("cartList");
-
-const cartTotal =
-    document.getElementById("cartTotal");
-
-const checkoutButton =
-    document.getElementById("checkoutButton");
+const cartList = document.getElementById("cartList");
+const cartTotal = document.getElementById("cartTotal");
+const checkoutButton = document.getElementById("checkoutButton");
 
 let currentUser = null;
+let cartItems = [];
 
+function formatPrice(price, currency) {
+    const symbols = {
+        USD: "$",
+        EUR: "€",
+        GBP: "£",
+        MAD: "MAD",
+        AED: "AED",
+        SAR: "SAR",
+        QAR: "QAR",
+        KWD: "KWD",
+        BHD: "BHD",
+        CAD: "CAD",
+        AUD: "AUD",
+        JPY: "¥",
+        CNY: "¥",
+        INR: "₹",
+        BDT: "৳",
+        TRY: "₺",
+        CHF: "CHF",
+        BRL: "R$",
+        ZAR: "ZAR"
+    };
 
-async function loadCart() {
+    const code = currency || "USD";
+    const symbol = symbols[code] || code;
 
+    return Number(price).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + " " + symbol;
+}
+
+async function getUser() {
     const {
-        data: {
-            user
-        },
-        error: userError
+        data,
+        error
     } = await supabase.auth.getUser();
 
-
-    if (userError || !user) {
-
-        window.location.href =
-            "auth.html";
-
-        return;
+    if (error || !data.user) {
+        window.location.href = "auth.html";
+        return null;
     }
 
+    return data.user;
+}
 
-    currentUser = user;
-
-
+async function loadCart() {
     const {
-        data: items,
+        data,
         error
     } = await supabase
         .from("cart_items")
         .select(`
             id,
-            listing_id,
             quantity,
+            listing_id,
             listings (
                 id,
                 title,
                 price,
+                currency,
+                country,
                 city,
                 type,
                 image_urls,
                 user_id
             )
         `)
-        .eq(
-            "user_id",
-            user.id
-        );
-
+        .eq("user_id", currentUser.id)
+        .order("created_at", {
+            ascending: false
+        });
 
     if (error) {
-
         console.error(error);
 
-        cartList.innerHTML =
-            "<p>تعذر تحميل السلة.</p>";
+        cartList.textContent =
+            "تعذر تحميل السلة.";
 
         return;
     }
 
+    cartItems = data || [];
 
+    renderCart();
+}
+
+function renderCart() {
     cartList.innerHTML = "";
 
-    let total = 0;
-
-
-    if (!items || items.length === 0) {
-
-        cartList.innerHTML =
-            "<p>السلة فارغة 🛒</p>";
+    if (cartItems.length === 0) {
+        cartList.textContent =
+            "السلة فارغة 🛒";
 
         cartTotal.textContent =
-            "0";
+            "المجموع: 0";
 
-        checkoutButton.disabled =
-            true;
+        checkoutButton.disabled = true;
 
         return;
     }
 
+    checkoutButton.disabled = false;
 
-    checkoutButton.disabled =
-        false;
+    const totals = {};
 
+    cartItems.forEach(function (item) {
 
-    items.forEach(function (item) {
+        const listing = item.listings;
 
-        if (!item.listings) {
-            return;
-        }
-
-
-        const listing =
-            item.listings;
-
+        if (!listing) return;
 
         const card =
             document.createElement("article");
@@ -109,12 +123,10 @@ async function loadCart() {
         card.className =
             "listing-card";
 
-
         if (
             listing.image_urls &&
             listing.image_urls.length > 0
         ) {
-
             const image =
                 document.createElement("img");
 
@@ -124,9 +136,11 @@ async function loadCart() {
             image.alt =
                 listing.title;
 
+            image.loading =
+                "lazy";
+
             card.appendChild(image);
         }
-
 
         const title =
             document.createElement("h3");
@@ -136,193 +150,138 @@ async function loadCart() {
 
         card.appendChild(title);
 
-
         const price =
             document.createElement("p");
 
         price.textContent =
             "السعر: " +
-            Number(listing.price).toFixed(2) +
-            " درهم";
+            formatPrice(
+                listing.price,
+                listing.currency
+            );
 
         card.appendChild(price);
 
-
-        const quantityContainer =
-            document.createElement("div");
-
-
-        const quantityLabel =
-            document.createElement("span");
-
-        quantityLabel.textContent =
-            "الكمية: ";
-
-        quantityContainer.appendChild(
-            quantityLabel
-        );
-
-
-        const decreaseButton =
-            document.createElement("button");
-
-        decreaseButton.textContent =
-            "−";
-
-
-        const quantityValue =
-            document.createElement("span");
-
-        quantityValue.textContent =
-            item.quantity;
-
-        quantityValue.style.margin =
-            "0 15px";
-
-
-        const increaseButton =
-            document.createElement("button");
-
-        increaseButton.textContent =
-            "+";
-
-
-        quantityContainer.appendChild(
-            decreaseButton
-        );
-
-        quantityContainer.appendChild(
-            quantityValue
-        );
-
-        quantityContainer.appendChild(
-            increaseButton
-        );
-
-
-        card.appendChild(
-            quantityContainer
-        );
-
-
-        const itemTotal =
-            Number(listing.price) *
-            Number(item.quantity);
-
-        total +=
-            itemTotal;
-
-
-        const totalElement =
+        const location =
             document.createElement("p");
 
-        totalElement.textContent =
-            "المجموع: " +
-            itemTotal.toFixed(2) +
-            " درهم";
+        location.textContent =
+            "الموقع: " +
+            (listing.city || "غير محددة") +
+            "، " +
+            (listing.country || "غير محددة");
 
-        card.appendChild(
-            totalElement
-        );
+        card.appendChild(location);
 
+        const quantity =
+            document.createElement("p");
 
-        decreaseButton.addEventListener(
+        quantity.textContent =
+            "الكمية: " +
+            item.quantity;
+
+        card.appendChild(quantity);
+
+        const controls =
+            document.createElement("div");
+
+        const minus =
+            document.createElement("button");
+
+        minus.textContent = "−";
+
+        minus.addEventListener(
             "click",
-            async function () {
-
-                if (item.quantity <= 1) {
-
-                    await removeItem(
-                        item.id
-                    );
-
-                    return;
-                }
-
-
-                await updateQuantity(
+            function () {
+                updateQuantity(
                     item.id,
                     item.quantity - 1
                 );
-
             }
         );
 
+        const plus =
+            document.createElement("button");
 
-        increaseButton.addEventListener(
+        plus.textContent = "+";
+
+        plus.addEventListener(
             "click",
-            async function () {
-
-                await updateQuantity(
+            function () {
+                updateQuantity(
                     item.id,
                     item.quantity + 1
                 );
-
             }
         );
 
-
-        const removeButton =
+        const remove =
             document.createElement("button");
 
-        removeButton.textContent =
-            "إزالة من السلة";
+        remove.textContent =
+            "حذف";
 
-
-        removeButton.addEventListener(
+        remove.addEventListener(
             "click",
-            async function () {
-
-                await removeItem(
-                    item.id
-                );
-
+            function () {
+                removeItem(item.id);
             }
         );
 
+        controls.appendChild(minus);
+        controls.appendChild(plus);
+        controls.appendChild(remove);
 
-        card.appendChild(
-            removeButton
-        );
+        card.appendChild(controls);
 
+        cartList.appendChild(card);
 
-        cartList.appendChild(
-            card
-        );
+        const currency =
+            listing.currency || "USD";
 
+        if (!totals[currency]) {
+            totals[currency] = 0;
+        }
+
+        totals[currency] +=
+            Number(listing.price) *
+            Number(item.quantity);
     });
 
+    const totalParts =
+        Object.keys(totals).map(
+            function (currency) {
+                return formatPrice(
+                    totals[currency],
+                    currency
+                );
+            }
+        );
 
     cartTotal.textContent =
-        total.toFixed(2);
-
+        "المجموع: " +
+        totalParts.join(" + ");
 }
-
 
 async function updateQuantity(
     itemId,
     quantity
 ) {
+    if (quantity <= 0) {
+        await removeItem(itemId);
+        return;
+    }
 
-    const {
-        error
-    } = await supabase
-        .from("cart_items")
-        .update({
-            quantity: quantity
-        })
-        .eq(
-            "id",
-            itemId
-        )
-        .eq(
-            "user_id",
-            currentUser.id
-        );
-
+    const { error } =
+        await supabase
+            .from("cart_items")
+            .update({
+                quantity: quantity
+            })
+            .eq("id", itemId)
+            .eq("user_id", currentUser.id);
 
     if (error) {
-
         console.error(error);
 
         alert(
@@ -332,57 +291,55 @@ async function updateQuantity(
         return;
     }
 
-
     await loadCart();
-
 }
 
-
-async function removeItem(
-    itemId
-) {
-
-    const {
-        error
-    } = await supabase
-        .from("cart_items")
-        .delete()
-        .eq(
-            "id",
-            itemId
-        )
-        .eq(
-            "user_id",
-            currentUser.id
-        );
-
+async function removeItem(itemId) {
+    const { error } =
+        await supabase
+            .from("cart_items")
+            .delete()
+            .eq("id", itemId)
+            .eq("user_id", currentUser.id);
 
     if (error) {
-
         console.error(error);
 
         alert(
-            "تعذر إزالة المنتج."
+            "تعذر حذف المنتج."
         );
 
         return;
     }
 
-
     await loadCart();
-
 }
 
+if (checkoutButton) {
+    checkoutButton.addEventListener(
+        "click",
+        function () {
 
-checkoutButton.addEventListener(
-    "click",
-    function () {
+            if (cartItems.length === 0) {
+                alert(
+                    "السلة فارغة."
+                );
+                return;
+            }
 
-        window.location.href =
-            "checkout.html";
+            window.location.href =
+                "checkout.html";
+        }
+    );
+}
 
-    }
-);
+async function start() {
+    currentUser =
+        await getUser();
 
+    if (!currentUser) return;
 
-loadCart();
+    await loadCart();
+}
+
+start();
