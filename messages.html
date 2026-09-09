@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>الرسائل - Chronet</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+</head>
+
+<body>
+
+    <header>
+        <h1>Chronet</h1>
+        <p>الرسائل 💬</p>
+    </header>
+
+    <nav>
+
+        <a href="index.html">
+            الرئيسية
+        </a>
+
+        <a href="add.html">
+            أضف إعلانًا
+        </a>
+
+        <a href="profile.html">
+            حسابي
+        </a>
+
+        <a href="favorites.html">
+            المفضلة ❤️
+        </a>
+
+        <a href="messages.html">
+            الرسائل 💬
+        </a>
+
+    </nav>
+
+    <main>
+
+        <section id="conversationSection">
+
+            <h2>المحادثة</h2>
+
+            <div id="conversationInfo">
+                جاري تحميل المحادثة...
+            </div>
+
+            <div id="messagesList">
+                جاري تحميل الرسائل...
+            </div>
+
+            <form id="messageForm">
+
+                <textarea
+                    id="messageInput"
+                    rows="3"
+                    maxlength="2000"
+                    placeholder="اكتب رسالتك..."
+                    required
+                ></textarea>
+
+                <button type="submit">
+                    إرسال
+                </button>
+
+            </form>
+
+            <p id="messageStatus"></p>
+
+        </section>
+
+    </main>
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
+
+    <script src="supabase.js"></script>
+
+    <script src="messages.js"></script>
+
+</body>
+
+</html>
