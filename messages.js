@@ -24,13 +24,17 @@ async function initializeMessages() {
 
     await loadConversations();
 
-    const params = new URLSearchParams(window.location.search);
+    const params =
+        new URLSearchParams(window.location.search);
 
-    conversationId = params.get("conversation");
+    conversationId =
+        params.get("conversation");
 
     if (!conversationId) {
-        conversationInfo.textContent = "اختر محادثة من القائمة.";
-        messagesList.innerHTML = "<p>لم تختر محادثة بعد.</p>";
+        conversationInfo.textContent =
+            "اختر محادثة من القائمة.";
+        messagesList.innerHTML =
+            "<p>لم تختر محادثة بعد.</p>";
         messageForm.style.display = "none";
         return;
     }
@@ -85,12 +89,14 @@ async function loadConversations() {
 
     conversations.forEach(function (conversation) {
 
-        const card = document.createElement("article");
+        const card =
+            document.createElement("article");
 
         card.className = "listing-card";
         card.style.cursor = "pointer";
 
-        const title = document.createElement("h3");
+        const title =
+            document.createElement("h3");
 
         title.textContent =
             conversation.listings
@@ -99,7 +105,8 @@ async function loadConversations() {
 
         card.appendChild(title);
 
-        const person = document.createElement("p");
+        const person =
+            document.createElement("p");
 
         person.textContent =
             conversation.buyer_id === currentUser.id
@@ -108,13 +115,16 @@ async function loadConversations() {
 
         card.appendChild(person);
 
-        card.addEventListener("click", function () {
+        card.addEventListener(
+            "click",
+            function () {
 
-            window.location.href =
-                "messages.html?conversation=" +
-                conversation.id;
+                window.location.href =
+                    "messages.html?conversation=" +
+                    conversation.id;
 
-        });
+            }
+        );
 
         conversationsList.appendChild(card);
     });
@@ -212,13 +222,16 @@ async function loadMessages() {
                 : "other-message"
         );
 
-        const content = document.createElement("p");
+        const content =
+            document.createElement("p");
 
-        content.textContent = message.content;
+        content.textContent =
+            message.content;
 
         messageElement.appendChild(content);
 
-        const date = document.createElement("small");
+        const date =
+            document.createElement("small");
 
         date.textContent =
             new Date(message.created_at)
@@ -247,14 +260,32 @@ messageForm.addEventListener(
         messageStatus.textContent =
             "جاري الإرسال...";
 
-        const { error } =
-            await supabase
-                .from("messages")
-                .insert({
-                    conversation_id: conversationId,
-                    sender_id: currentUser.id,
-                    content: content
-                });
+        const {
+            data: conversation
+        } = await supabase
+            .from("conversations")
+            .select("buyer_id, seller_id, listing_id")
+            .eq("id", conversationId)
+            .single();
+
+        if (!conversation) {
+            messageStatus.textContent =
+                "تعذر العثور على المحادثة.";
+            return;
+        }
+
+        const {
+            data: newMessage,
+            error
+        } = await supabase
+            .from("messages")
+            .insert({
+                conversation_id: conversationId,
+                sender_id: currentUser.id,
+                content: content
+            })
+            .select("id")
+            .single();
 
         if (error) {
             console.error(error);
@@ -262,6 +293,23 @@ messageForm.addEventListener(
                 "تعذر إرسال الرسالة.";
             return;
         }
+
+        const receiverId =
+            conversation.buyer_id === currentUser.id
+                ? conversation.seller_id
+                : conversation.buyer_id;
+
+        await supabase
+            .from("notifications")
+            .insert({
+                user_id: receiverId,
+                type: "message",
+                title: "رسالة جديدة 💬",
+                content: content,
+                listing_id: conversation.listing_id,
+                conversation_id: conversationId,
+                message_id: newMessage.id
+            });
 
         messageInput.value = "";
         messageStatus.textContent = "";
@@ -288,9 +336,7 @@ function startRealtime() {
                     conversationId
             },
             function () {
-
                 loadMessages();
-
             }
         )
         .subscribe();
