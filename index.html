@@ -25,8 +25,55 @@
         <h2>اكتشف الإعلانات</h2>
 
         <div class="search">
-            <input type="text" placeholder="ماذا تبحث؟">
-            <button>بحث</button>
+    <section class="search-section">
+
+    <h2>البحث عن إعلان</h2>
+
+    <input
+        type="text"
+        id="searchInput"
+        placeholder="ابحث عن منتج أو خدمة..."
+    >
+
+    <select id="typeFilter">
+        <option value="">كل الأنواع</option>
+        <option value="product">منتجات</option>
+        <option value="service">خدمات</option>
+    </select>
+
+    <input
+        type="text"
+        id="cityFilter"
+        placeholder="المدينة"
+    >
+
+    <input
+        type="number"
+        id="minPrice"
+        placeholder="أقل سعر"
+        min="0"
+    >
+
+    <input
+        type="number"
+        id="maxPrice"
+        placeholder="أعلى سعر"
+        min="0"
+    >
+
+    <select id="sortFilter">
+        <option value="newest">الأحدث أولًا</option>
+        <option value="oldest">الأقدم أولًا</option>
+        <option value="price_low">السعر: من الأقل للأعلى</option>
+        <option value="price_high">السعر: من الأعلى للأقل</option>
+    </select>
+
+    <button id="searchButton">
+        بحث
+    </button>
+
+</section>
+            
         </div>
 
         <section class="categories">
