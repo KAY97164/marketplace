@@ -1,33 +1,45 @@
-const listingsContainer =
-    document.getElementById("listingsContainer");
+const listingsContainer = document.getElementById("listingsContainer");
+const searchInput = document.getElementById("searchInput");
+const typeFilter = document.getElementById("typeFilter");
+const cityFilter = document.getElementById("cityFilter");
+const minPrice = document.getElementById("minPrice");
+const maxPrice = document.getElementById("maxPrice");
+const sortFilter = document.getElementById("sortFilter");
+const searchButton = document.getElementById("searchButton");
 
-const searchInput =
-    document.getElementById("searchInput");
+function formatPrice(price, currency) {
+    const symbols = {
+        USD: "$",
+        EUR: "€",
+        GBP: "£",
+        MAD: "MAD",
+        AED: "AED",
+        SAR: "SAR",
+        QAR: "QAR",
+        KWD: "KWD",
+        BHD: "BHD",
+        CAD: "CAD",
+        AUD: "AUD",
+        JPY: "¥",
+        CNY: "¥",
+        INR: "₹",
+        BDT: "৳",
+        TRY: "₺",
+        CHF: "CHF",
+        BRL: "R$",
+        ZAR: "ZAR"
+    };
 
-const typeFilter =
-    document.getElementById("typeFilter");
+    const symbol = symbols[currency] || currency || "USD";
 
-const cityFilter =
-    document.getElementById("cityFilter");
-
-const minPrice =
-    document.getElementById("minPrice");
-
-const maxPrice =
-    document.getElementById("maxPrice");
-
-const sortFilter =
-    document.getElementById("sortFilter");
-
-const searchButton =
-    document.getElementById("searchButton");
-
+    return Number(price).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + " " + symbol;
+}
 
 async function loadListings() {
-
-    if (!listingsContainer) {
-        return;
-    }
+    if (!listingsContainer) return;
 
     listingsContainer.innerHTML =
         "<p>جاري تحميل الإعلانات...</p>";
@@ -36,15 +48,12 @@ async function loadListings() {
         .from("listings")
         .select("*");
 
-
-    // البحث بالكلمات
     const search =
         searchInput
             ? searchInput.value.trim()
             : "";
 
     if (search) {
-
         query = query.or(
             "title.ilike.%" +
             search +
@@ -52,11 +61,8 @@ async function loadListings() {
             search +
             "%"
         );
-
     }
 
-
-    // فلترة النوع
     const type =
         typeFilter
             ? typeFilter.value
@@ -66,8 +72,6 @@ async function loadListings() {
         query = query.eq("type", type);
     }
 
-
-    // فلترة المدينة
     const city =
         cityFilter
             ? cityFilter.value.trim()
@@ -80,113 +84,79 @@ async function loadListings() {
         );
     }
 
-
-    // أقل سعر
     const minimum =
         minPrice
             ? minPrice.value
             : "";
 
     if (minimum !== "") {
-
         query = query.gte(
             "price",
             Number(minimum)
         );
-
     }
 
-
-    // أعلى سعر
     const maximum =
         maxPrice
             ? maxPrice.value
             : "";
 
     if (maximum !== "") {
-
         query = query.lte(
             "price",
             Number(maximum)
         );
-
     }
 
-
-    // الترتيب
     const sort =
         sortFilter
             ? sortFilter.value
             : "newest";
 
-
     if (sort === "newest") {
-
         query = query.order(
             "created_at",
-            {
-                ascending: false
-            }
+            { ascending: false }
         );
-
     } else if (sort === "oldest") {
-
         query = query.order(
             "created_at",
-            {
-                ascending: true
-            }
+            { ascending: true }
         );
-
     } else if (sort === "price_low") {
-
         query = query.order(
             "price",
-            {
-                ascending: true
-            }
+            { ascending: true }
         );
-
     } else if (sort === "price_high") {
-
         query = query.order(
             "price",
-            {
-                ascending: false
-            }
+            { ascending: false }
         );
-
     }
-
 
     const {
         data: listings,
         error
     } = await query;
 
-
     if (error) {
-
         console.error(error);
 
-        listingsContainer.innerHTML =
-            "<p>حدث خطأ أثناء تحميل الإعلانات.</p>";
+        listingsContainer.textContent =
+            "حدث خطأ أثناء تحميل الإعلانات.";
 
         return;
     }
-
 
     if (!listings || listings.length === 0) {
-
-        listingsContainer.innerHTML =
-            "<p>لم نجد أي إعلانات مطابقة.</p>";
+        listingsContainer.textContent =
+            "لم نجد أي إعلانات مطابقة.";
 
         return;
     }
 
-
     listingsContainer.innerHTML = "";
-
 
     listings.forEach(function (listing) {
 
@@ -199,24 +169,19 @@ async function loadListings() {
         card.style.cursor =
             "pointer";
 
-
         card.addEventListener(
             "click",
             function () {
-
                 window.location.href =
                     "listing.html?id=" +
                     listing.id;
-
             }
         );
-
 
         if (
             listing.image_urls &&
             listing.image_urls.length > 0
         ) {
-
             const image =
                 document.createElement("img");
 
@@ -226,10 +191,11 @@ async function loadListings() {
             image.alt =
                 listing.title;
 
+            image.loading =
+                "lazy";
+
             card.appendChild(image);
-
         }
-
 
         const title =
             document.createElement("h3");
@@ -239,86 +205,79 @@ async function loadListings() {
 
         card.appendChild(title);
 
-
         const price =
             document.createElement("p");
 
-        price.innerHTML =
-            "<strong>السعر:</strong> " +
-            listing.price +
-            " درهم";
+        price.textContent =
+            "السعر: " +
+            formatPrice(
+                listing.price,
+                listing.currency
+            );
 
         card.appendChild(price);
 
+        const country =
+            document.createElement("p");
+
+        country.textContent =
+            "الدولة: " +
+            (listing.country ||
+                "غير محددة");
+
+        card.appendChild(country);
 
         const city =
             document.createElement("p");
 
-        city.innerHTML =
-            "<strong>المدينة:</strong> " +
-            listing.city;
+        city.textContent =
+            "المدينة: " +
+            (listing.city ||
+                "غير محددة");
 
         card.appendChild(city);
-
-
-        const typeText =
-            listing.type === "product"
-                ? "منتج"
-                : "خدمة";
-
 
         const typeElement =
             document.createElement("p");
 
-        typeElement.innerHTML =
-            "<strong>النوع:</strong> " +
-            typeText;
+        typeElement.textContent =
+            "النوع: " +
+            (
+                listing.type === "product"
+                    ? "منتج"
+                    : "خدمة"
+            );
 
         card.appendChild(typeElement);
-
 
         const description =
             document.createElement("p");
 
         description.textContent =
-            listing.description;
+            listing.description || "";
 
         card.appendChild(description);
 
-
         listingsContainer.appendChild(card);
-
     });
-
 }
 
-
 if (searchButton) {
-
     searchButton.addEventListener(
         "click",
         loadListings
     );
-
 }
 
-
 if (searchInput) {
-
     searchInput.addEventListener(
         "keydown",
         function (event) {
-
             if (event.key === "Enter") {
-
                 loadListings();
-
             }
-
         }
     );
-
 }
-
 
 loadListings();
