@@ -1,11 +1,29 @@
-const listingsContainer = document.getElementById("listingsContainer");
-const searchInput = document.getElementById("searchInput");
-const typeFilter = document.getElementById("typeFilter");
-const cityFilter = document.getElementById("cityFilter");
-const minPrice = document.getElementById("minPrice");
-const maxPrice = document.getElementById("maxPrice");
-const sortFilter = document.getElementById("sortFilter");
-const searchButton = document.getElementById("searchButton");
+const listingsContainer =
+    document.getElementById("listingsContainer");
+
+const searchInput =
+    document.getElementById("searchInput");
+
+const typeFilter =
+    document.getElementById("typeFilter");
+
+const countryFilter =
+    document.getElementById("countryFilter");
+
+const cityFilter =
+    document.getElementById("cityFilter");
+
+const minPrice =
+    document.getElementById("minPrice");
+
+const maxPrice =
+    document.getElementById("maxPrice");
+
+const sortFilter =
+    document.getElementById("sortFilter");
+
+const searchButton =
+    document.getElementById("searchButton");
 
 function formatPrice(price, currency) {
     const symbols = {
@@ -30,7 +48,8 @@ function formatPrice(price, currency) {
         ZAR: "ZAR"
     };
 
-    const symbol = symbols[currency] || currency || "USD";
+    const code = currency || "USD";
+    const symbol = symbols[code] || code;
 
     return Number(price).toLocaleString(undefined, {
         minimumFractionDigits: 2,
@@ -44,9 +63,10 @@ async function loadListings() {
     listingsContainer.innerHTML =
         "<p>جاري تحميل الإعلانات...</p>";
 
-    let query = supabase
-        .from("listings")
-        .select("*");
+    let query =
+        supabase
+            .from("listings")
+            .select("*");
 
     const search =
         searchInput
@@ -69,7 +89,22 @@ async function loadListings() {
             : "";
 
     if (type) {
-        query = query.eq("type", type);
+        query = query.eq(
+            "type",
+            type
+        );
+    }
+
+    const country =
+        countryFilter
+            ? countryFilter.value.trim()
+            : "";
+
+    if (country) {
+        query = query.ilike(
+            "country",
+            "%" + country + "%"
+        );
     }
 
     const city =
@@ -189,7 +224,7 @@ async function loadListings() {
                 listing.image_urls[0];
 
             image.alt =
-                listing.title;
+                listing.title || "";
 
             image.loading =
                 "lazy";
@@ -217,25 +252,33 @@ async function loadListings() {
 
         card.appendChild(price);
 
-        const country =
+        const countryElement =
             document.createElement("p");
 
-        country.textContent =
+        countryElement.textContent =
             "الدولة: " +
-            (listing.country ||
-                "غير محددة");
+            (
+                listing.country ||
+                "غير محددة"
+            );
 
-        card.appendChild(country);
+        card.appendChild(
+            countryElement
+        );
 
-        const city =
+        const cityElement =
             document.createElement("p");
 
-        city.textContent =
+        cityElement.textContent =
             "المدينة: " +
-            (listing.city ||
-                "غير محددة");
+            (
+                listing.city ||
+                "غير محددة"
+            );
 
-        card.appendChild(city);
+        card.appendChild(
+            cityElement
+        );
 
         const typeElement =
             document.createElement("p");
@@ -248,7 +291,9 @@ async function loadListings() {
                     : "خدمة"
             );
 
-        card.appendChild(typeElement);
+        card.appendChild(
+            typeElement
+        );
 
         const description =
             document.createElement("p");
@@ -256,9 +301,13 @@ async function loadListings() {
         description.textContent =
             listing.description || "";
 
-        card.appendChild(description);
+        card.appendChild(
+            description
+        );
 
-        listingsContainer.appendChild(card);
+        listingsContainer.appendChild(
+            card
+        );
     });
 }
 
@@ -271,6 +320,28 @@ if (searchButton) {
 
 if (searchInput) {
     searchInput.addEventListener(
+        "keydown",
+        function (event) {
+            if (event.key === "Enter") {
+                loadListings();
+            }
+        }
+    );
+}
+
+if (countryFilter) {
+    countryFilter.addEventListener(
+        "keydown",
+        function (event) {
+            if (event.key === "Enter") {
+                loadListings();
+            }
+        }
+    );
+}
+
+if (cityFilter) {
+    cityFilter.addEventListener(
         "keydown",
         function (event) {
             if (event.key === "Enter") {
