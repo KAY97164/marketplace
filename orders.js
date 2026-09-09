@@ -1,26 +1,56 @@
-const ordersList =
-    document.getElementById("ordersList");
+const ordersContainer =
+    document.getElementById("ordersContainer");
 
+let currentUser = null;
 
-async function loadOrders() {
+function formatPrice(price, currency) {
+    const symbols = {
+        USD: "$",
+        EUR: "€",
+        GBP: "£",
+        MAD: "MAD",
+        AED: "AED",
+        SAR: "SAR",
+        QAR: "QAR",
+        KWD: "KWD",
+        BHD: "BHD",
+        CAD: "CAD",
+        AUD: "AUD",
+        JPY: "¥",
+        CNY: "¥",
+        INR: "₹",
+        BDT: "৳",
+        TRY: "₺",
+        CHF: "CHF",
+        BRL: "R$",
+        ZAR: "ZAR"
+    };
 
+    const code = currency || "USD";
+    const symbol = symbols[code] || code;
+
+    return Number(price).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }) + " " + symbol;
+}
+
+async function getUser() {
     const {
-        data: {
-            user
-        },
-        error: userError
+        data,
+        error
     } = await supabase.auth.getUser();
 
-
-    if (userError || !user) {
-
+    if (error || !data.user) {
         window.location.href =
             "auth.html";
-
-        return;
+        return null;
     }
 
+    return data.user;
+}
 
+async function loadOrders() {
     const {
         data: orders,
         error
@@ -29,6 +59,7 @@ async function loadOrders() {
         .select(`
             id,
             total,
+            currency,
             status,
             payment_status,
             payment_method,
@@ -38,58 +69,49 @@ async function loadOrders() {
                 id,
                 quantity,
                 price,
-                seller_id,
                 listings (
-                    id,
                     title,
+                    image_urls,
                     city,
-                    image_urls
+                    country,
+                    currency
                 )
             )
         `)
         .eq(
             "buyer_id",
-            user.id
+            currentUser.id
         )
         .order(
             "created_at",
-            {
-                ascending: false
-            }
+            { ascending: false }
         );
 
-
     if (error) {
-
         console.error(error);
 
-        ordersList.innerHTML =
-            "<p>تعذر تحميل الطلبات.</p>";
+        ordersContainer.textContent =
+            "تعذر تحميل الطلبات.";
 
         return;
     }
 
-
-    ordersList.innerHTML = "";
-
+    ordersContainer.innerHTML = "";
 
     if (!orders || orders.length === 0) {
-
-        ordersList.innerHTML =
-            "<p>ليس لديك طلبات حتى الآن. 📦</p>";
+        ordersContainer.textContent =
+            "لا توجد طلبات حتى الآن.";
 
         return;
     }
-
 
     orders.forEach(function (order) {
 
-        const orderCard =
+        const box =
             document.createElement("article");
 
-        orderCard.className =
+        box.className =
             "listing-card";
-
 
         const title =
             document.createElement("h3");
@@ -98,30 +120,40 @@ async function loadOrders() {
             "الطلب #" +
             order.id;
 
-        orderCard.appendChild(title);
+        box.appendChild(title);
 
+        const total =
+            document.createElement("p");
+
+        total.textContent =
+            "المجموع: " +
+            formatPrice(
+                order.total,
+                order.currency
+            );
+
+        box.appendChild(total);
 
         const status =
             document.createElement("p");
 
         status.textContent =
-            "الحالة: " +
-            getStatusName(order.status);
+            "حالة الطلب: " +
+            order.status;
 
-        orderCard.appendChild(status);
-
+        box.appendChild(status);
 
         const payment =
             document.createElement("p");
 
         payment.textContent =
             "الدفع: " +
-            getPaymentStatusName(
-                order.payment_status
+            (
+                order.payment_status ||
+                "unpaid"
             );
 
-        orderCard.appendChild(payment);
-
+        box.appendChild(payment);
 
         const method =
             document.createElement("p");
@@ -129,58 +161,46 @@ async function loadOrders() {
         method.textContent =
             "طريقة الدفع: " +
             (
-                order.payment_method ===
-                "cash_on_delivery"
-                    ? "الدفع عند الاستلام"
-                    : order.payment_method || "غير محددة"
+                order.payment_method ||
+                "غير محددة"
             );
 
-        orderCard.appendChild(method);
-
+        box.appendChild(method);
 
         const address =
             document.createElement("p");
 
         address.textContent =
-            "عنوان التوصيل: " +
-            order.shipping_address;
+            "عنوان الشحن: " +
+            (
+                order.shipping_address ||
+                "غير محدد"
+            );
 
-        orderCard.appendChild(address);
-
-
-        const total =
-            document.createElement("p");
-
-        total.textContent =
-            "المجموع: " +
-            Number(order.total).toFixed(2) +
-            " درهم";
-
-        orderCard.appendChild(total);
-
+        box.appendChild(address);
 
         const date =
-            document.createElement("small");
+            document.createElement("p");
 
         date.textContent =
-            "تاريخ الطلب: " +
+            "التاريخ: " +
             new Date(
                 order.created_at
-            ).toLocaleString("ar-MA");
+            ).toLocaleString(
+                "ar-MA"
+            );
 
-        orderCard.appendChild(date);
-
+        box.appendChild(date);
 
         const itemsTitle =
             document.createElement("h4");
 
         itemsTitle.textContent =
-            "المنتجات:";
+            "المنتجات";
 
-        orderCard.appendChild(
+        box.appendChild(
             itemsTitle
         );
-
 
         if (
             order.order_items &&
@@ -190,92 +210,132 @@ async function loadOrders() {
             order.order_items.forEach(
                 function (item) {
 
-                    if (!item.listings) {
-                        return;
+                    const itemBox =
+                        document.createElement(
+                            "div"
+                        );
+
+                    const listing =
+                        item.listings;
+
+                    if (
+                        listing &&
+                        listing.image_urls &&
+                        listing.image_urls.length > 0
+                    ) {
+
+                        const image =
+                            document.createElement(
+                                "img"
+                            );
+
+                        image.src =
+                            listing.image_urls[0];
+
+                        image.alt =
+                            listing.title || "";
+
+                        image.width = 100;
+                        image.loading =
+                            "lazy";
+
+                        itemBox.appendChild(
+                            image
+                        );
                     }
 
+                    const itemTitle =
+                        document.createElement(
+                            "p"
+                        );
 
-                    const itemElement =
-                        document.createElement("p");
+                    itemTitle.textContent =
+                        listing
+                            ? listing.title
+                            : "منتج";
 
-
-                    itemElement.textContent =
-                        item.listings.title +
-                        " × " +
-                        item.quantity +
-                        " — " +
-                        (
-                            Number(item.price) *
-                            Number(item.quantity)
-                        ).toFixed(2) +
-                        " درهم";
-
-
-                    orderCard.appendChild(
-                        itemElement
+                    itemBox.appendChild(
+                        itemTitle
                     );
 
+                    const itemPrice =
+                        document.createElement(
+                            "p"
+                        );
+
+                    itemPrice.textContent =
+                        "السعر: " +
+                        formatPrice(
+                            item.price,
+                            (
+                                listing &&
+                                listing.currency
+                            ) ||
+                            order.currency
+                        );
+
+                    itemBox.appendChild(
+                        itemPrice
+                    );
+
+                    const quantity =
+                        document.createElement(
+                            "p"
+                        );
+
+                    quantity.textContent =
+                        "الكمية: " +
+                        item.quantity;
+
+                    itemBox.appendChild(
+                        quantity
+                    );
+
+                    if (listing) {
+
+                        const location =
+                            document.createElement(
+                                "p"
+                            );
+
+                        location.textContent =
+                            "الموقع: " +
+                            (
+                                listing.city ||
+                                "غير محددة"
+                            ) +
+                            "، " +
+                            (
+                                listing.country ||
+                                "غير محددة"
+                            );
+
+                        itemBox.appendChild(
+                            location
+                        );
+                    }
+
+                    box.appendChild(
+                        itemBox
+                    );
                 }
             );
-
         }
 
-
-        ordersList.appendChild(
-            orderCard
+        ordersContainer.appendChild(
+            box
         );
-
     });
-
 }
 
+async function start() {
 
-function getStatusName(status) {
+    currentUser =
+        await getUser();
 
-    const names = {
+    if (!currentUser) return;
 
-        pending:
-            "قيد الانتظار ⏳",
-
-        confirmed:
-            "تم التأكيد ✅",
-
-        shipped:
-            "تم الشحن 🚚",
-
-        delivered:
-            "تم التسليم 📦",
-
-        cancelled:
-            "ملغى ❌"
-
-    };
-
-
-    return names[status] || status;
-
+    await loadOrders();
 }
 
-
-function getPaymentStatusName(status) {
-
-    const names = {
-
-        unpaid:
-            "غير مدفوع",
-
-        paid:
-            "تم الدفع ✅",
-
-        refunded:
-            "تم استرداد المبلغ ↩️"
-
-    };
-
-
-    return names[status] || status || "غير محدد";
-
-}
-
-
-loadOrders();
+start();
