@@ -1,345 +1,263 @@
+const conversationsList = document.getElementById("conversationsList");
+const conversationTitle = document.getElementById("conversationTitle");
 const messagesList = document.getElementById("messagesList");
 const messageForm = document.getElementById("messageForm");
 const messageInput = document.getElementById("messageInput");
-const messageStatus = document.getElementById("messageStatus");
-const conversationInfo = document.getElementById("conversationInfo");
-const conversationsList = document.getElementById("conversationsList");
 
 let currentUser = null;
-let conversationId = null;
+let currentConversationId = null;
 
-async function initializeMessages() {
+const params = new URLSearchParams(window.location.search);
+const requestedConversationId = params.get("conversation");
 
-    const {
-        data: { user },
-        error
-    } = await supabase.auth.getUser();
+async function getUser() {
+const { data, error } = await supabase.auth.getUser();
 
-    if (error || !user) {
-        window.location.href = "auth.html";
-        return;
-    }
+if (error || !data.user) {
+    window.location.href = "auth.html";
+    return null;
+}
 
-    currentUser = user;
+return data.user;
 
-    await loadConversations();
-
-    const params =
-        new URLSearchParams(window.location.search);
-
-    conversationId =
-        params.get("conversation");
-
-    if (!conversationId) {
-        conversationInfo.textContent =
-            "اختر محادثة من القائمة.";
-        messagesList.innerHTML =
-            "<p>لم تختر محادثة بعد.</p>";
-        messageForm.style.display = "none";
-        return;
-    }
-
-    await loadConversation();
-    await loadMessages();
-
-    startRealtime();
 }
 
 async function loadConversations() {
+const { data, error } = await supabase
+.from("conversations")
+.select("id, buyer_id, seller_id, listing_id, created_at, listings(title)")
+.or(
+"buyer_id.eq." + currentUser.id +
+",seller_id.eq." + currentUser.id
+)
+.order("created_at", { ascending: false });
 
-    const {
-        data: conversations,
-        error
-    } = await supabase
-        .from("conversations")
-        .select(`
-            id,
-            buyer_id,
-            seller_id,
-            listing_id,
-            created_at,
-            listings (
-                title
-            )
-        `)
-        .or(
-            "buyer_id.eq." +
-            currentUser.id +
-            ",seller_id.eq." +
-            currentUser.id
-        )
-        .order("created_at", {
-            ascending: false
-        });
-
-    if (error) {
-        console.error(error);
-        conversationsList.innerHTML =
-            "<p>تعذر تحميل المحادثات.</p>";
-        return;
-    }
-
-    conversationsList.innerHTML = "";
-
-    if (!conversations || conversations.length === 0) {
-        conversationsList.innerHTML =
-            "<p>لا توجد لديك محادثات حتى الآن.</p>";
-        return;
-    }
-
-    conversations.forEach(function (conversation) {
-
-        const card =
-            document.createElement("article");
-
-        card.className = "listing-card";
-        card.style.cursor = "pointer";
-
-        const title =
-            document.createElement("h3");
-
-        title.textContent =
-            conversation.listings
-                ? conversation.listings.title
-                : "إعلان";
-
-        card.appendChild(title);
-
-        const person =
-            document.createElement("p");
-
-        person.textContent =
-            conversation.buyer_id === currentUser.id
-                ? "أنت المشتري"
-                : "أنت البائع";
-
-        card.appendChild(person);
-
-        card.addEventListener(
-            "click",
-            function () {
-
-                window.location.href =
-                    "messages.html?conversation=" +
-                    conversation.id;
-
-            }
-        );
-
-        conversationsList.appendChild(card);
-    });
+if (error) {
+    console.error(error);
+    conversationsList.textContent =
+        "تعذر تحميل المحادثات.";
+    return;
 }
 
-async function loadConversation() {
+conversationsList.innerHTML = "";
 
-    const {
-        data: conversation,
-        error
-    } = await supabase
-        .from("conversations")
-        .select(`
-            id,
-            buyer_id,
-            seller_id,
-            listing_id,
-            listings (
-                title
-            )
-        `)
-        .eq("id", conversationId)
-        .single();
+if (!data || data.length === 0) {
+    conversationsList.textContent =
+        "لا توجد محادثات.";
+    return;
+}
 
-    if (error || !conversation) {
-        conversationInfo.textContent =
-            "تعذر تحميل المحادثة.";
-        messageForm.style.display = "none";
+data.forEach(function (conversation) {
+    const button = document.createElement("button");
+
+    button.textContent =
+        (conversation.listings &&
+            conversation.listings.title) ||
+        "محادثة";
+
+    button.addEventListener("click", function () {
+        loadConversation(conversation.id);
+    });
+
+    conversationsList.appendChild(button);
+});
+
+if (requestedConversationId) {
+    const exists = data.some(function (item) {
+        return String(item.id) === String(requestedConversationId);
+    });
+
+    if (exists) {
+        loadConversation(requestedConversationId);
         return;
     }
+}
 
-    if (
-        conversation.buyer_id !== currentUser.id &&
-        conversation.seller_id !== currentUser.id
-    ) {
-        conversationInfo.textContent =
-            "لا يمكنك الوصول إلى هذه المحادثة.";
-        messageForm.style.display = "none";
-        return;
-    }
+loadConversation(data[0].id);
 
-    conversationInfo.textContent =
-        "المحادثة حول: " +
-        (
-            conversation.listings
-                ? conversation.listings.title
-                : "الإعلان"
-        );
+}
+
+async function loadConversation(conversationId) {
+currentConversationId = conversationId;
+
+const { data: conversation, error } = await supabase
+    .from("conversations")
+    .select(`
+        id,
+        buyer_id,
+        seller_id,
+        listing_id,
+        listings(title)
+    `)
+    .eq("id", conversationId)
+    .single();
+
+if (error || !conversation) {
+    console.error(error);
+    conversationTitle.textContent =
+        "تعذر تحميل المحادثة.";
+    return;
+}
+
+conversationTitle.textContent =
+    (conversation.listings &&
+        conversation.listings.title) ||
+    "المحادثة";
+
+await loadMessages();
+
 }
 
 async function loadMessages() {
+if (!currentConversationId) return;
 
-    const {
-        data: messages,
-        error
-    } = await supabase
+const { data: messages, error } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("conversation_id", currentConversationId)
+    .order("created_at", { ascending: true });
+
+if (error) {
+    console.error(error);
+    messagesList.textContent =
+        "تعذر تحميل الرسائل.";
+    return;
+}
+
+messagesList.innerHTML = "";
+
+if (!messages || messages.length === 0) {
+    messagesList.textContent =
+        "لا توجد رسائل بعد.";
+    return;
+}
+
+messages.forEach(function (message) {
+    addMessageToScreen(message);
+});
+
+await markMessagesAsRead(messages);
+
+}
+
+function addMessageToScreen(message) {
+const box = document.createElement("div");
+
+box.className =
+    message.sender_id === currentUser.id
+        ? "message own-message"
+        : "message";
+
+const content = document.createElement("p");
+content.textContent = message.content;
+
+const date = document.createElement("small");
+date.textContent =
+    new Date(message.created_at).toLocaleString("ar-MA");
+
+box.appendChild(content);
+box.appendChild(date);
+
+messagesList.appendChild(box);
+
+messagesList.scrollTop =
+    messagesList.scrollHeight;
+
+}
+
+async function markMessagesAsRead(messages) {
+const unreadIds = messages
+.filter(function (message) {
+return (
+message.sender_id !== currentUser.id &&
+!message.is_read
+);
+})
+.map(function (message) {
+return message.id;
+});
+
+if (unreadIds.length === 0) return;
+
+const { error } = await supabase
+    .from("messages")
+    .update({ is_read: true })
+    .in("id", unreadIds);
+
+if (error) {
+    console.error(error);
+}
+
+}
+
+if (messageForm) {
+messageForm.addEventListener("submit", async function (event) {
+event.preventDefault();
+
+    if (!currentConversationId) return;
+
+    const content = messageInput.value.trim();
+
+    if (!content) return;
+
+    const { error } = await supabase
         .from("messages")
-        .select(`
-            id,
-            sender_id,
-            content,
-            created_at,
-            is_read
-        `)
-        .eq("conversation_id", conversationId)
-        .order("created_at", {
-            ascending: true
+        .insert({
+            conversation_id: currentConversationId,
+            sender_id: currentUser.id,
+            content: content
         });
 
     if (error) {
         console.error(error);
-        messagesList.innerHTML =
-            "<p>تعذر تحميل الرسائل.</p>";
+        alert("تعذر إرسال الرسالة.");
         return;
     }
 
-    messagesList.innerHTML = "";
+    messageInput.value = "";
+});
 
-    if (!messages || messages.length === 0) {
-        messagesList.innerHTML =
-            "<p>لا توجد رسائل بعد. ابدأ المحادثة! 💬</p>";
-        return;
-    }
-
-    messages.forEach(function (message) {
-
-        const messageElement =
-            document.createElement("div");
-
-        messageElement.className = "message";
-
-        messageElement.classList.add(
-            message.sender_id === currentUser.id
-                ? "my-message"
-                : "other-message"
-        );
-
-        const content =
-            document.createElement("p");
-
-        content.textContent =
-            message.content;
-
-        messageElement.appendChild(content);
-
-        const date =
-            document.createElement("small");
-
-        date.textContent =
-            new Date(message.created_at)
-                .toLocaleString("ar-MA");
-
-        messageElement.appendChild(date);
-
-        messagesList.appendChild(messageElement);
-    });
-
-    messagesList.scrollTop =
-        messagesList.scrollHeight;
 }
 
-messageForm.addEventListener(
-    "submit",
-    async function (event) {
+async function startRealtime() {
+supabase
+.channel("chronet-messages")
+.on(
+"postgres_changes",
+{
+event: "INSERT",
+schema: "public",
+table: "messages"
+},
+function (payload) {
+const message = payload.new;
 
-        event.preventDefault();
+            if (
+                String(message.conversation_id) ===
+                String(currentConversationId)
+            ) {
+                addMessageToScreen(message);
 
-        const content =
-            messageInput.value.trim();
-
-        if (!content) return;
-
-        messageStatus.textContent =
-            "جاري الإرسال...";
-
-        const {
-            data: conversation
-        } = await supabase
-            .from("conversations")
-            .select("buyer_id, seller_id, listing_id")
-            .eq("id", conversationId)
-            .single();
-
-        if (!conversation) {
-            messageStatus.textContent =
-                "تعذر العثور على المحادثة.";
-            return;
-        }
-
-        const {
-            data: newMessage,
-            error
-        } = await supabase
-            .from("messages")
-            .insert({
-                conversation_id: conversationId,
-                sender_id: currentUser.id,
-                content: content
-            })
-            .select("id")
-            .single();
-
-        if (error) {
-            console.error(error);
-            messageStatus.textContent =
-                "تعذر إرسال الرسالة.";
-            return;
-        }
-
-        const receiverId =
-            conversation.buyer_id === currentUser.id
-                ? conversation.seller_id
-                : conversation.buyer_id;
-
-        await supabase
-            .from("notifications")
-            .insert({
-                user_id: receiverId,
-                type: "message",
-                title: "رسالة جديدة 💬",
-                content: content,
-                listing_id: conversation.listing_id,
-                conversation_id: conversationId,
-                message_id: newMessage.id
-            });
-
-        messageInput.value = "";
-        messageStatus.textContent = "";
-
-        await loadMessages();
-    }
-);
-
-function startRealtime() {
-
-    supabase
-        .channel(
-            "conversation-" +
-            conversationId
-        )
-        .on(
-            "postgres_changes",
-            {
-                event: "INSERT",
-                schema: "public",
-                table: "messages",
-                filter:
-                    "conversation_id=eq." +
-                    conversationId
-            },
-            function () {
-                loadMessages();
+                if (
+                    message.sender_id !== currentUser.id
+                ) {
+                    markMessagesAsRead([message]);
+                }
             }
-        )
-        .subscribe();
+        }
+    )
+    .subscribe();
+
 }
 
-initializeMessages();
+async function start() {
+currentUser = await getUser();
+
+if (!currentUser) return;
+
+await loadConversations();
+await startRealtime();
+
+}
+
+start();
