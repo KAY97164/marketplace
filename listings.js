@@ -1,19 +1,26 @@
 const listingDetails =
     document.getElementById("listingDetails");
 
+
 async function loadListing() {
 
     const params =
-        new URLSearchParams(window.location.search);
+        new URLSearchParams(
+            window.location.search
+        );
 
     const listingId =
         params.get("id");
 
+
     if (!listingId) {
+
         listingDetails.innerHTML =
             "<p>لم يتم تحديد الإعلان.</p>";
+
         return;
     }
+
 
     const {
         data: listing,
@@ -24,7 +31,9 @@ async function loadListing() {
         .eq("id", listingId)
         .single();
 
+
     if (error || !listing) {
+
         console.error(error);
 
         listingDetails.innerHTML =
@@ -33,13 +42,16 @@ async function loadListing() {
         return;
     }
 
+
     const {
         data: {
             user: currentUser
         }
     } = await supabase.auth.getUser();
 
+
     let isFavorite = false;
+
 
     if (currentUser) {
 
@@ -48,103 +60,202 @@ async function loadListing() {
         } = await supabase
             .from("favorites")
             .select("id")
-            .eq("user_id", currentUser.id)
-            .eq("listing_id", listing.id)
+            .eq(
+                "user_id",
+                currentUser.id
+            )
+            .eq(
+                "listing_id",
+                listing.id
+            )
             .maybeSingle();
+
 
         isFavorite = !!favorite;
     }
 
-    let imagesHTML = "";
+
+    listingDetails.innerHTML = "";
+
 
     if (
         listing.image_urls &&
         listing.image_urls.length > 0
     ) {
 
-        imagesHTML = `
-            <div class="listing-images">
+        const imagesContainer =
+            document.createElement("div");
 
-                ${listing.image_urls.map(function (url) {
+        imagesContainer.className =
+            "listing-images";
 
-                    return `
-                        <img
-                            src="${url}"
-                            alt="${listing.title}"
-                        >
-                    `;
 
-                }).join("")}
+        listing.image_urls.forEach(
+            function (url) {
 
-            </div>
-        `;
+                const image =
+                    document.createElement("img");
 
-    } else {
+                image.src = url;
+                image.alt = listing.title;
 
-        imagesHTML =
-            "<p>لا توجد صور لهذا الإعلان.</p>";
+                imagesContainer.appendChild(
+                    image
+                );
+            }
+        );
+
+
+        listingDetails.appendChild(
+            imagesContainer
+        );
     }
 
-    const typeText =
-        listing.type === "product"
-            ? "منتج"
-            : "خدمة";
 
-    listingDetails.innerHTML = `
+    const title =
+        document.createElement("h2");
 
-        ${imagesHTML}
+    title.textContent =
+        listing.title;
 
-        <h2>${listing.title}</h2>
+    listingDetails.appendChild(title);
 
-        <p>
-            <strong>السعر:</strong>
-            ${listing.price} درهم
-        </p>
 
-        <p>
-            <strong>المدينة:</strong>
-            ${listing.city}
-        </p>
+    const price =
+        document.createElement("p");
 
-        <p>
-            <strong>النوع:</strong>
-            ${typeText}
-        </p>
+    price.textContent =
+        "السعر: " +
+        listing.price +
+        " درهم";
 
-        <h3>الوصف</h3>
+    listingDetails.appendChild(price);
 
-        <p>${listing.description}</p>
 
-        <button id="favoriteButton">
-            ${
-                isFavorite
-                    ? "❤️ إزالة من المفضلة"
-                    : "♡ إضافة إلى المفضلة"
-            }
-        </button>
+    const city =
+        document.createElement("p");
 
-        <button id="contactSeller">
-            تواصل مع البائع
-        </button>
+    city.textContent =
+        "المدينة: " +
+        listing.city;
 
-        <hr>
+    listingDetails.appendChild(city);
 
-        <section id="reviewsSection">
 
-            <h2>⭐ التقييمات والتعليقات</h2>
+    const type =
+        document.createElement("p");
 
-            <div id="reviewsSummary">
-                جاري تحميل التقييمات...
-            </div>
+    type.textContent =
+        "النوع: " +
+        (
+            listing.type === "product"
+                ? "منتج"
+                : "خدمة"
+        );
 
-            <div id="reviewsList">
-                جاري تحميل التعليقات...
-            </div>
+    listingDetails.appendChild(type);
 
-            <div id="reviewFormContainer"></div>
 
-        </section>
+    const descriptionTitle =
+        document.createElement("h3");
+
+    descriptionTitle.textContent =
+        "الوصف";
+
+    listingDetails.appendChild(
+        descriptionTitle
+    );
+
+
+    const description =
+        document.createElement("p");
+
+    description.textContent =
+        listing.description || "";
+
+    listingDetails.appendChild(
+        description
+    );
+
+
+    const favoriteButton =
+        document.createElement("button");
+
+    favoriteButton.id =
+        "favoriteButton";
+
+    favoriteButton.textContent =
+        isFavorite
+            ? "❤️ إزالة من المفضلة"
+            : "♡ إضافة إلى المفضلة";
+
+    listingDetails.appendChild(
+        favoriteButton
+    );
+
+
+    const cartButton =
+        document.createElement("button");
+
+    cartButton.id =
+        "addToCartButton";
+
+    cartButton.textContent =
+        "🛒 أضف إلى السلة";
+
+    listingDetails.appendChild(
+        cartButton
+    );
+
+
+    const contactButton =
+        document.createElement("button");
+
+    contactButton.id =
+        "contactSeller";
+
+    contactButton.textContent =
+        "تواصل مع البائع";
+
+    listingDetails.appendChild(
+        contactButton
+    );
+
+
+    const separator =
+        document.createElement("hr");
+
+    listingDetails.appendChild(
+        separator
+    );
+
+
+    const reviewsSection =
+        document.createElement("section");
+
+    reviewsSection.id =
+        "reviewsSection";
+
+
+    reviewsSection.innerHTML = `
+        <h2>⭐ التقييمات والتعليقات</h2>
+
+        <div id="reviewsSummary">
+            جاري تحميل التقييمات...
+        </div>
+
+        <div id="reviewsList">
+            جاري تحميل التعليقات...
+        </div>
+
+        <div id="reviewFormContainer"></div>
     `;
+
+
+    listingDetails.appendChild(
+        reviewsSection
+    );
+
 
     setupFavoriteButton(
         listing,
@@ -152,9 +263,83 @@ async function loadListing() {
         isFavorite
     );
 
-    document
-    .getElementById("contactSeller")
-    .addEventListener(
+
+    cartButton.addEventListener(
+        "click",
+        async function () {
+
+            if (!currentUser) {
+
+                alert(
+                    "يجب تسجيل الدخول أولًا."
+                );
+
+                window.location.href =
+                    "auth.html";
+
+                return;
+            }
+
+
+            if (
+                currentUser.id ===
+                listing.user_id
+            ) {
+
+                alert(
+                    "لا يمكنك إضافة إعلانك إلى سلتك."
+                );
+
+                return;
+            }
+
+
+            const {
+                error
+            } = await supabase
+                .from("cart_items")
+                .insert({
+                    user_id:
+                        currentUser.id,
+
+                    listing_id:
+                        listing.id,
+
+                    quantity: 1
+                });
+
+
+            if (error) {
+
+                if (
+                    error.code === "23505"
+                ) {
+
+                    alert(
+                        "هذا الإعلان موجود بالفعل في السلة."
+                    );
+
+                } else {
+
+                    console.error(error);
+
+                    alert(
+                        "حدث خطأ أثناء إضافة الإعلان."
+                    );
+                }
+
+                return;
+            }
+
+
+            alert(
+                "تمت إضافة الإعلان إلى السلة 🛒"
+            );
+        }
+    );
+
+
+    contactButton.addEventListener(
         "click",
         async function () {
 
@@ -242,7 +427,6 @@ async function loadListing() {
 
                     listing_id:
                         listing.id
-
                 })
                 .select("id")
                 .single();
@@ -263,9 +447,9 @@ async function loadListing() {
             window.location.href =
                 "messages.html?conversation=" +
                 newConversation.id;
-
         }
     );
+
 
     await loadReviews(
         listing.id,
@@ -288,6 +472,7 @@ function setupFavoriteButton(
     let favoriteState =
         isFavorite;
 
+
     button.addEventListener(
         "click",
         async function () {
@@ -303,6 +488,7 @@ function setupFavoriteButton(
 
                 return;
             }
+
 
             if (favoriteState) {
 
@@ -320,6 +506,7 @@ function setupFavoriteButton(
                         listing.id
                     );
 
+
                 if (error) {
 
                     console.error(error);
@@ -330,6 +517,7 @@ function setupFavoriteButton(
 
                     return;
                 }
+
 
                 favoriteState = false;
 
@@ -343,12 +531,14 @@ function setupFavoriteButton(
                 } = await supabase
                     .from("favorites")
                     .insert({
+
                         user_id:
                             currentUser.id,
 
                         listing_id:
                             listing.id
                     });
+
 
                 if (error) {
 
@@ -360,6 +550,7 @@ function setupFavoriteButton(
 
                     return;
                 }
+
 
                 favoriteState = true;
 
@@ -391,6 +582,7 @@ async function loadReviews(
             "reviewFormContainer"
         );
 
+
     const {
         data: reviews,
         error
@@ -414,6 +606,7 @@ async function loadReviews(
             }
         );
 
+
     if (error) {
 
         console.error(error);
@@ -426,8 +619,6 @@ async function loadReviews(
         return;
     }
 
-
-    // حساب متوسط التقييم
 
     if (
         !reviews ||
@@ -442,13 +633,18 @@ async function loadReviews(
         const total =
             reviews.reduce(
                 function (sum, review) {
-                    return sum + review.rating;
+
+                    return sum +
+                        review.rating;
+
                 },
                 0
             );
 
+
         const average =
             total / reviews.length;
+
 
         reviewsSummary.innerHTML = `
             <h3>
@@ -479,24 +675,9 @@ async function loadReviews(
                         "article"
                     );
 
+
                 reviewElement.className =
                     "review-card";
-
-
-                const stars =
-                    "⭐".repeat(
-                        review.rating
-                    );
-
-
-                const comment =
-                    document.createElement(
-                        "p"
-                    );
-
-                comment.textContent =
-                    review.comment ||
-                    "بدون تعليق";
 
 
                 const rating =
@@ -504,13 +685,28 @@ async function loadReviews(
                         "h4"
                     );
 
+
                 rating.textContent =
-                    stars;
+                    "⭐".repeat(
+                        review.rating
+                    );
 
 
                 reviewElement.appendChild(
                     rating
                 );
+
+
+                const comment =
+                    document.createElement(
+                        "p"
+                    );
+
+
+                comment.textContent =
+                    review.comment ||
+                    "بدون تعليق";
+
 
                 reviewElement.appendChild(
                     comment
@@ -520,13 +716,14 @@ async function loadReviews(
                 if (
                     currentUser &&
                     currentUser.id ===
-                        review.user_id
+                    review.user_id
                 ) {
 
                     const deleteButton =
                         document.createElement(
                             "button"
                         );
+
 
                     deleteButton.textContent =
                         "حذف تقييمي";
@@ -540,6 +737,7 @@ async function loadReviews(
                                 confirm(
                                     "هل تريد حذف تقييمك؟"
                                 );
+
 
                             if (!confirmed) {
                                 return;
@@ -564,233 +762,3 @@ async function loadReviews(
                             if (error) {
 
                                 alert(
-                                    "حدث خطأ أثناء حذف التقييم."
-                                );
-
-                                return;
-                            }
-
-
-                            await loadReviews(
-                                listingId,
-                                currentUser
-                            );
-                        }
-                    );
-
-
-                    reviewElement.appendChild(
-                        deleteButton
-                    );
-                }
-
-
-                reviewsList.appendChild(
-                    reviewElement
-                );
-            }
-        );
-    }
-
-
-    // نموذج إضافة التقييم
-
-    if (!currentUser) {
-
-        reviewFormContainer.innerHTML = `
-            <p>
-                <a href="auth.html">
-                    سجّل الدخول
-                </a>
-                لإضافة تقييم وتعليق.
-            </p>
-        `;
-
-        return;
-    }
-
-
-    const alreadyReviewed =
-        reviews &&
-        reviews.some(
-            function (review) {
-                return (
-                    review.user_id ===
-                    currentUser.id
-                );
-            }
-        );
-
-
-    if (alreadyReviewed) {
-
-        reviewFormContainer.innerHTML = `
-            <p>
-                لقد قيّمت هذا الإعلان بالفعل.
-            </p>
-        `;
-
-        return;
-    }
-
-
-    reviewFormContainer.innerHTML = `
-
-        <hr>
-
-        <h3>
-            أضف تقييمك
-        </h3>
-
-        <form id="reviewForm">
-
-            <label for="rating">
-                التقييم
-            </label>
-
-            <select
-                id="rating"
-                required
-            >
-
-                <option value="">
-                    اختر التقييم
-                </option>
-
-                <option value="5">
-                    ⭐⭐⭐⭐⭐ ممتاز
-                </option>
-
-                <option value="4">
-                    ⭐⭐⭐⭐ جيد جدًا
-                </option>
-
-                <option value="3">
-                    ⭐⭐⭐ جيد
-                </option>
-
-                <option value="2">
-                    ⭐⭐ ضعيف
-                </option>
-
-                <option value="1">
-                    ⭐ سيئ
-                </option>
-
-            </select>
-
-
-            <label for="reviewComment">
-                تعليقك
-            </label>
-
-            <textarea
-                id="reviewComment"
-                rows="5"
-                maxlength="1000"
-                placeholder="اكتب رأيك عن الإعلان..."
-            ></textarea>
-
-
-            <button type="submit">
-                نشر التقييم
-            </button>
-
-        </form>
-
-        <p id="reviewMessage"></p>
-    `;
-
-
-    document
-        .getElementById("reviewForm")
-        .addEventListener(
-            "submit",
-            async function (event) {
-
-                event.preventDefault();
-
-
-                const rating =
-                    Number(
-                        document.getElementById(
-                            "rating"
-                        ).value
-                    );
-
-
-                const comment =
-                    document.getElementById(
-                        "reviewComment"
-                    ).value.trim();
-
-
-                const reviewMessage =
-                    document.getElementById(
-                        "reviewMessage"
-                    );
-
-
-                if (
-                    !rating ||
-                    rating < 1 ||
-                    rating > 5
-                ) {
-
-                    reviewMessage.textContent =
-                        "اختر تقييمًا من 1 إلى 5.";
-
-                    return;
-                }
-
-
-                reviewMessage.textContent =
-                    "جاري نشر التقييم...";
-
-
-                const {
-                    error
-                } = await supabase
-                    .from("reviews")
-                    .insert({
-
-                        user_id:
-                            currentUser.id,
-
-                        listing_id:
-                            listingId,
-
-                        rating:
-                            rating,
-
-                        comment:
-                            comment
-                    });
-
-
-                if (error) {
-
-                    console.error(error);
-
-                    reviewMessage.textContent =
-                        "حدث خطأ: " +
-                        error.message;
-
-                    return;
-                }
-
-
-                reviewMessage.textContent =
-                    "تم نشر تقييمك بنجاح! ⭐";
-
-
-                await loadReviews(
-                    listingId,
-                    currentUser
-                );
-            }
-        );
-}
-
-
-loadListing();
