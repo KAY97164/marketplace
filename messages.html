@@ -50,39 +50,51 @@
 
     <main>
 
-        <section id="conversationSection">
+    <section id="conversationsSection">
 
-            <h2>المحادثة</h2>
+        <h2>محادثاتي 💬</h2>
 
-            <div id="conversationInfo">
-                جاري تحميل المحادثة...
-            </div>
+        <div id="conversationsList">
+            جاري تحميل المحادثات...
+        </div>
 
-            <div id="messagesList">
-                جاري تحميل الرسائل...
-            </div>
+    </section>
 
-            <form id="messageForm">
+    <hr>
 
-                <textarea
-                    id="messageInput"
-                    rows="3"
-                    maxlength="2000"
-                    placeholder="اكتب رسالتك..."
-                    required
-                ></textarea>
+    <section id="conversationSection">
 
-                <button type="submit">
-                    إرسال
-                </button>
+        <h2>المحادثة</h2>
 
-            </form>
+        <div id="conversationInfo">
+            جاري تحميل المحادثة...
+        </div>
 
-            <p id="messageStatus"></p>
+        <div id="messagesList">
+            جاري تحميل الرسائل...
+        </div>
 
-        </section>
+        <form id="messageForm">
 
-    </main>
+            <textarea
+                id="messageInput"
+                rows="3"
+                maxlength="2000"
+                placeholder="اكتب رسالتك..."
+                required
+            ></textarea>
+
+            <button type="submit">
+                إرسال
+            </button>
+
+        </form>
+
+        <p id="messageStatus"></p>
+
+    </section>
+
+</main>
 
     <script
         src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
