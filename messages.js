@@ -13,6 +13,9 @@ const messageStatus =
 const conversationInfo =
     document.getElementById("conversationInfo");
 
+const conversationsList =
+    document.getElementById("conversationsList");
+
 
 let currentUser = null;
 let conversationId = null;
@@ -40,6 +43,9 @@ async function initializeMessages() {
     currentUser = user;
 
 
+    await loadConversations();
+
+
     const params =
         new URLSearchParams(
             window.location.search
@@ -53,10 +59,10 @@ async function initializeMessages() {
     if (!conversationId) {
 
         conversationInfo.textContent =
-            "لم يتم تحديد محادثة.";
+            "اختر محادثة من القائمة.";
 
         messagesList.innerHTML =
-            "<p>افتح محادثة من إعلان للتواصل مع البائع.</p>";
+            "<p>لم تختر محادثة بعد.</p>";
 
         messageForm.style.display =
             "none";
@@ -68,6 +74,157 @@ async function initializeMessages() {
     await loadConversation();
 
     await loadMessages();
+}
+
+
+async function loadConversations() {
+
+    const {
+        data: conversations,
+        error
+    } = await supabase
+        .from("conversations")
+        .select(`
+            id,
+            buyer_id,
+            seller_id,
+            listing_id,
+            created_at,
+            listings (
+                title
+            )
+        `)
+        .or(
+            "buyer_id.eq." +
+            currentUser.id +
+            ",seller_id.eq." +
+            currentUser.id
+        )
+        .order(
+            "created_at",
+            {
+                ascending: false
+            }
+        );
+
+
+    if (error) {
+
+        console.error(error);
+
+        conversationsList.innerHTML =
+            "<p>تعذر تحميل المحادثات.</p>";
+
+        return;
+    }
+
+
+    conversationsList.innerHTML = "";
+
+
+    if (
+        !conversations ||
+        conversations.length === 0
+    ) {
+
+        conversationsList.innerHTML =
+            "<p>لا توجد لديك محادثات حتى الآن.</p>";
+
+        return;
+    }
+
+
+    conversations.forEach(
+        function (conversation) {
+
+            const card =
+                document.createElement(
+                    "article"
+                );
+
+
+            card.className =
+                "listing-card";
+
+
+            const title =
+                document.createElement(
+                    "h3"
+                );
+
+
+            title.textContent =
+                conversation.listings
+                    ? conversation.listings.title
+                    : "إعلان";
+
+
+            card.appendChild(title);
+
+
+            const person =
+                document.createElement(
+                    "p"
+                );
+
+
+            if (
+                conversation.buyer_id ===
+                currentUser.id
+            ) {
+
+                person.textContent =
+                    "أنت المشتري";
+
+            } else {
+
+                person.textContent =
+                    "أنت البائع";
+            }
+
+
+            card.appendChild(person);
+
+
+            const date =
+                document.createElement(
+                    "small"
+                );
+
+
+            date.textContent =
+                new Date(
+                    conversation.created_at
+                ).toLocaleString(
+                    "ar-MA"
+                );
+
+
+            card.appendChild(date);
+
+
+            card.style.cursor =
+                "pointer";
+
+
+            card.addEventListener(
+                "click",
+                function () {
+
+                    window.location.href =
+                        "messages.html?conversation=" +
+                        conversation.id;
+
+                }
+            );
+
+
+            conversationsList.appendChild(
+                card
+            );
+
+        }
+    );
 }
 
 
@@ -317,8 +474,7 @@ messageForm.addEventListener(
 
         messageInput.value = "";
 
-        messageStatus.textContent =
-            "";
+        messageStatus.textContent = "";
 
 
         await loadMessages();
