@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>تعديل الإعلان - Chronet</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>Chronet</h1>
+        <p>تعديل الإعلان</p>
+    </header>
+
+    <nav>
+        <a href="index.html">الرئيسية</a>
+        <a href="add.html">أضف إعلانًا</a>
+        <a href="profile.html">حسابي</a>
+    </nav>
+
+    <main>
+
+        <h2>تعديل الإعلان</h2>
+
+        <form id="editForm">
+
+            <label for="type">نوع الإعلان</label>
+
+            <select id="type" required>
+                <option value="product">سلعة</option>
+                <option value="service">خدمة</option>
+            </select>
+
+
+            <label for="title">اسم الإعلان</label>
+
+            <input
+                type="text"
+                id="title"
+                required
+            >
+
+
+            <label for="price">السعر</label>
+
+            <input
+                type="number"
+                id="price"
+                min="0"
+                required
+            >
+
+
+            <label for="city">المدينة</label>
+
+            <input
+                type="text"
+                id="city"
+                required
+            >
+
+
+            <label for="description">الوصف</label>
+
+            <textarea
+                id="description"
+                required
+            ></textarea>
+
+
+            <label for="images">
+                إضافة صور جديدة
+            </label>
+
+            <input
+                type="file"
+                id="images"
+                accept="image/*"
+                multiple
+            >
+
+
+            <button type="submit">
+                حفظ التعديلات
+            </button>
+
+        </form>
+
+        <div id="message"></div>
+
+    </main>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="edit.js"></script>
+
+</body>
+
+</html>
