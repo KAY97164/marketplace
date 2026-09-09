@@ -1,11 +1,17 @@
-const checkoutForm =
-    document.getElementById("checkoutForm");
-
 const checkoutItems =
     document.getElementById("checkoutItems");
 
 const checkoutTotal =
     document.getElementById("checkoutTotal");
+
+const checkoutForm =
+    document.getElementById("checkoutForm");
+
+const paymentMethod =
+    document.getElementById("paymentMethod");
+
+const shippingAddress =
+    document.getElementById("shippingAddress");
 
 let currentUser = null;
 let cartItems = [];
@@ -43,15 +49,11 @@ function formatPrice(price, currency) {
 }
 
 async function getUser() {
-    const {
-        data,
-        error
-    } = await supabase.auth.getUser();
+    const { data, error } =
+        await supabase.auth.getUser();
 
     if (error || !data.user) {
-        window.location.href =
-            "auth.html";
-
+        window.location.href = "auth.html";
         return null;
     }
 
@@ -59,51 +61,50 @@ async function getUser() {
 }
 
 async function loadCart() {
-    const {
-        data,
-        error
-    } = await supabase
-        .from("cart_items")
-        .select(`
-            id,
-            quantity,
-            listing_id,
-            listings (
+    const { data, error } =
+        await supabase
+            .from("cart_items")
+            .select(`
                 id,
-                title,
-                price,
-                currency,
-                country,
-                city,
-                type,
-                user_id,
-                image_urls
-            )
-        `)
-        .eq(
-            "user_id",
-            currentUser.id
-        );
+                quantity,
+                listing_id,
+                listings (
+                    id,
+                    title,
+                    price,
+                    currency,
+                    country,
+                    city,
+                    type,
+                    image_urls,
+                    user_id
+                )
+            `)
+            .eq("user_id", currentUser.id)
+            .order("created_at", {
+                ascending: false
+            });
 
     if (error) {
         console.error(error);
-
         checkoutItems.textContent =
             "تعذر تحميل السلة.";
-
-        return false;
+        return;
     }
 
-    cartItems = (data || []).filter(
-        function (item) {
-            return (
-                item.listings &&
-                item.listings.type === "product" &&
-                item.listings.user_id !==
-                    currentUser.id
-            );
-        }
-    );
+    cartItems = (data || []).filter(function (item) {
+        return (
+            item.listings &&
+            item.listings.type === "product" &&
+            item.listings.user_id !== currentUser.id
+        );
+    });
+
+    renderCheckout();
+}
+
+function renderCheckout() {
+    checkoutItems.innerHTML = "";
 
     if (cartItems.length === 0) {
         checkoutItems.textContent =
@@ -112,72 +113,98 @@ async function loadCart() {
         checkoutTotal.textContent =
             "المجموع: 0";
 
-        return false;
+        return;
     }
 
-    renderCart();
+    const currencies = {};
 
-    return true;
-}
+    cartItems.forEach(function (item) {
+        const listing = item.listings;
 
-function renderCart() {
-    checkoutItems.innerHTML = "";
+        const currency =
+            listing.currency || "USD";
 
-    const totals = {};
+        if (!currencies[currency]) {
+            currencies[currency] = 0;
+        }
 
-    cartItems.forEach(
-        function (item) {
+        currencies[currency] +=
+            Number(listing.price) *
+            Number(item.quantity);
 
-            const listing =
-                item.listings;
+        const box =
+            document.createElement("article");
 
-            const box =
-                document.createElement("div");
+        box.className =
+            "listing-card";
 
-            const title =
-                document.createElement("h3");
+        if (
+            listing.image_urls &&
+            listing.image_urls.length > 0
+        ) {
+            const image =
+                document.createElement("img");
 
-            title.textContent =
-                listing.title;
+            image.src =
+                listing.image_urls[0];
 
-            box.appendChild(title);
+            image.alt =
+                listing.title || "";
 
-            const price =
-                document.createElement("p");
+            image.width = 120;
+            image.loading = "lazy";
 
-            price.textContent =
-                formatPrice(
-                    listing.price,
-                    listing.currency
-                ) +
-                " × " +
-                item.quantity;
+            box.appendChild(image);
+        }
 
-            box.appendChild(price);
+        const title =
+            document.createElement("h3");
 
-            checkoutItems.appendChild(
-                box
+        title.textContent =
+            listing.title;
+
+        box.appendChild(title);
+
+        const price =
+            document.createElement("p");
+
+        price.textContent =
+            "السعر: " +
+            formatPrice(
+                listing.price,
+                currency
             );
 
-            const currency =
-                listing.currency ||
-                "USD";
+        box.appendChild(price);
 
-            if (!totals[currency]) {
-                totals[currency] = 0;
-            }
+        const quantity =
+            document.createElement("p");
 
-            totals[currency] +=
-                Number(listing.price) *
-                Number(item.quantity);
-        }
-    );
+        quantity.textContent =
+            "الكمية: " +
+            item.quantity;
 
-    const parts =
-        Object.keys(totals).map(
+        box.appendChild(quantity);
+
+        const location =
+            document.createElement("p");
+
+        location.textContent =
+            "الموقع: " +
+            (listing.city || "غير محددة") +
+            "، " +
+            (listing.country || "غير محددة");
+
+        box.appendChild(location);
+
+        checkoutItems.appendChild(box);
+    });
+
+    const totalParts =
+        Object.keys(currencies).map(
             function (currency) {
                 return formatPrice(
-                    totals[currency],
+                    currencies[currency],
                     currency
                 );
             }
@@ -185,200 +212,213 @@ function renderCart() {
 
     checkoutTotal.textContent =
         "المجموع: " +
-        parts.join(" + ");
+        totalParts.join(" + ");
 }
 
-if (checkoutForm) {
+async function createOrder() {
+    if (cartItems.length === 0) {
+        alert("السلة فارغة.");
+        return null;
+    }
 
-    checkoutForm.addEventListener(
-        "submit",
-        async function (event) {
+    const currencies =
+        [
+            ...new Set(
+                cartItems.map(function (item) {
+                    return (
+                        item.listings.currency ||
+                        "USD"
+                    );
+                })
+            )
+        ];
 
-            event.preventDefault();
+    if (currencies.length > 1) {
+        alert(
+            "السلة تحتوي على عملات مختلفة. يرجى شراء كل عملة في طلب منفصل."
+        );
+        return null;
+    }
 
-            if (!currentUser) {
-                alert(
-                    "يجب تسجيل الدخول أولًا."
-                );
-                return;
-            }
+    const currency =
+        currencies[0];
 
-            if (cartItems.length === 0) {
-                alert(
-                    "السلة فارغة."
-                );
-                return;
-            }
+    let total = 0;
 
-            const shippingAddress =
-                document
-                    .getElementById(
-                        "shippingAddress"
-                    )
-                    .value
-                    .trim();
+    cartItems.forEach(function (item) {
+        total +=
+            Number(item.listings.price) *
+            Number(item.quantity);
+    });
 
-            const paymentMethod =
-                document
-                    .getElementById(
-                        "paymentMethod"
-                    )
-                    .value;
+    const method =
+        paymentMethod.value;
 
-            if (!shippingAddress) {
-                alert(
-                    "يرجى إدخال عنوان الشحن."
-                );
-                return;
-            }
+    if (!method) {
+        alert("يرجى اختيار طريقة الدفع.");
+        return null;
+    }
 
-            if (!paymentMethod) {
-                alert(
-                    "يرجى اختيار طريقة الدفع."
-                );
-                return;
-            }
+    const address =
+        shippingAddress.value.trim();
 
-            const currencies =
-                [
-                    ...new Set(
-                        cartItems.map(
-                            function (item) {
-                                return (
-                                    item.listings
-                                        .currency ||
-                                    "USD"
-                                );
-                            }
-                        )
-                    )
-                ];
+    if (!address) {
+        alert("يرجى إدخال عنوان الشحن.");
+        return null;
+    }
 
-            if (currencies.length > 1) {
-                alert(
-                    "لا يمكن إنشاء طلب واحد يحتوي على منتجات بعملات مختلفة. " +
-                    "يرجى شراء المنتجات ذات العملات المختلفة في طلبات منفصلة."
-                );
-                return;
-            }
+    const { data: order, error: orderError } =
+        await supabase
+            .from("orders")
+            .insert({
+                buyer_id: currentUser.id,
+                total,
+                currency,
+                status: "pending",
+                payment_status: "unpaid",
+                payment_method: method,
+                shipping_address: address
+            })
+            .select()
+            .single();
 
-            const currency =
-                currencies[0];
+    if (orderError) {
+        console.error(orderError);
+        alert(
+            "تعذر إنشاء الطلب:\n\n" +
+            orderError.message
+        );
+        return null;
+    }
 
-            const total =
-                cartItems.reduce(
-                    function (sum, item) {
-                        return (
-                            sum +
-                            Number(
-                                item.listings.price
-                            ) *
-                            Number(
-                                item.quantity
-                            )
-                        );
-                    },
-                    0
-                );
+    const orderItems =
+        cartItems.map(function (item) {
+            return {
+                order_id: order.id,
+                listing_id:
+                    item.listing_id,
+                seller_id:
+                    item.listings.user_id,
+                quantity:
+                    item.quantity,
+                price:
+                    Number(item.listings.price)
+            };
+        });
 
-            try {
+    const { error: itemsError } =
+        await supabase
+            .from("order_items")
+            .insert(orderItems);
+
+    if (itemsError) {
+        console.error(itemsError);
+
+        await supabase
+            .from("orders")
+            .delete()
+            .eq("id", order.id)
+            .eq("buyer_id", currentUser.id);
+
+        alert(
+            "تعذر إنشاء عناصر الطلب:\n\n" +
+            itemsError.message
+        );
+
+        return null;
+    }
+
+    return order;
+}
+
+checkoutForm.addEventListener(
+    "submit",
+    async function (event) {
+        event.preventDefault();
+
+        const button =
+            document.getElementById(
+                "placeOrderButton"
+            );
+
+        button.disabled = true;
+        button.textContent =
+            "جاري تجهيز الطلب...";
+
+        try {
+            const order =
+                await createOrder();
+
+            if (!order) return;
+
+            if (
+                paymentMethod.value ===
+                "card"
+            ) {
+                button.textContent =
+                    "جاري فتح الدفع...";
 
                 const {
-                    data: order,
-                    error: orderError
-                } = await supabase
-                    .from("orders")
-                    .insert({
-                        buyer_id:
-                            currentUser.id,
-                        total:
-                            total,
-                        currency:
-                            currency,
-                        status:
-                            "pending",
-                        payment_status:
-                            "unpaid",
-                        payment_method:
-                            paymentMethod,
-                        shipping_address:
-                            shippingAddress
-                    })
-                    .select()
-                    .single();
-
-                if (orderError) {
-                    throw orderError;
-                }
-
-                const orderItems =
-                    cartItems.map(
-                        function (item) {
-                            return {
+                    data,
+                    error
+                } =
+                    await supabase.functions.invoke(
+                        "create-checkout",
+                        {
+                            body: {
                                 order_id:
-                                    order.id,
-                                listing_id:
-                                    item.listing_id,
-                                seller_id:
-                                    item.listings.user_id,
-                                quantity:
-                                    item.quantity,
-                                price:
-                                    item.listings.price
-                            };
+                                    order.id
+                            }
                         }
                     );
 
-                const {
-                    error:
-                        itemsError
-                } = await supabase
-                    .from("order_items")
-                    .insert(
-                        orderItems
-                    );
-
-                if (itemsError) {
-                    throw itemsError;
+                if (error) {
+                    throw error;
                 }
 
-                const {
-                    error:
-                        cartError
-                } = await supabase
-                    .from("cart_items")
-                    .delete()
-                    .eq(
-                        "user_id",
-                        currentUser.id
+                if (!data || !data.url) {
+                    throw new Error(
+                        "لم يتم إنشاء رابط الدفع."
                     );
-
-                if (cartError) {
-                    throw cartError;
                 }
-
-                alert(
-                    "تم إنشاء الطلب بنجاح! 📦"
-                );
 
                 window.location.href =
-                    "orders.html";
+                    data.url;
 
-            } catch (error) {
-
-                console.error(error);
-
-                alert(
-                    "حدث خطأ أثناء إنشاء الطلب:\n\n" +
-                    error.message
-                );
+                return;
             }
+
+            await supabase
+                .from("cart_items")
+                .delete()
+                .eq(
+                    "user_id",
+                    currentUser.id
+                );
+
+            alert(
+                "تم إنشاء طلبك بنجاح! 📦"
+            );
+
+            window.location.href =
+                "orders.html";
+
+        } catch (error) {
+            console.error(error);
+
+            alert(
+                "حدث خطأ:\n\n" +
+                error.message
+            );
+
+            button.disabled = false;
+            button.textContent =
+                "تأكيد الطلب";
         }
-    );
-}
+    }
+);
 
 async function start() {
-
     currentUser =
         await getUser();
 
