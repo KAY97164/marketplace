@@ -1,5 +1,4 @@
-const form = document.getElementById("editForm");
-const message = document.getElementById("message");
+const editForm = document.getElementById("editForm");
 
 const params = new URLSearchParams(window.location.search);
 const listingId = params.get("id");
@@ -7,90 +6,69 @@ const listingId = params.get("id");
 let currentUser = null;
 let currentListing = null;
 
+async function getUser() {
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error || !data.user) {
+        window.location.href = "auth.html";
+        return null;
+    }
+
+    return data.user;
+}
 
 async function loadListing() {
-
     if (!listingId) {
-
-        message.textContent =
-            "لم يتم تحديد الإعلان.";
-
-        form.style.display = "none";
-
+        alert("الإعلان غير موجود.");
+        window.location.href = "profile.html";
         return;
     }
-
-
-    const {
-        data: { user },
-        error: userError
-    } = await supabase.auth.getUser();
-
-
-    if (userError || !user) {
-
-        window.location.href = "auth.html";
-
-        return;
-    }
-
-
-    currentUser = user;
-
 
     const { data: listing, error } = await supabase
         .from("listings")
         .select("*")
         .eq("id", listingId)
-        .eq("user_id", user.id)
+        .eq("user_id", currentUser.id)
         .single();
 
-
     if (error || !listing) {
-
-        message.textContent =
-            "لا يمكنك تعديل هذا الإعلان.";
-
-        form.style.display = "none";
-
+        console.error(error);
+        alert("تعذر تحميل الإعلان.");
+        window.location.href = "profile.html";
         return;
     }
-
 
     currentListing = listing;
 
-
     document.getElementById("type").value =
-        listing.type;
+        listing.type || "product";
 
     document.getElementById("title").value =
-        listing.title;
+        listing.title || "";
 
     document.getElementById("price").value =
-        listing.price;
+        listing.price ?? "";
+
+    document.getElementById("currency").value =
+        listing.currency || "MAD";
+
+    document.getElementById("country").value =
+        listing.country || "";
 
     document.getElementById("city").value =
-        listing.city;
+        listing.city || "";
 
     document.getElementById("description").value =
-        listing.description;
-
+        listing.description || "";
 }
 
-
-form.addEventListener("submit", async function (event) {
-
+editForm.addEventListener("submit", async function (event) {
     event.preventDefault();
 
-
     if (!currentUser || !currentListing) {
+        alert("تعذر تحميل الإعلان.");
         return;
     }
-
-
-    message.textContent =
-        "جاري حفظ التعديلات...";
-
 
     const type =
         document.getElementById("type").value;
@@ -99,7 +77,13 @@ form.addEventListener("submit", async function (event) {
         document.getElementById("title").value.trim();
 
     const price =
-        document.getElementById("price").value;
+        Number(document.getElementById("price").value);
+
+    const currency =
+        document.getElementById("currency").value;
+
+    const country =
+        document.getElementById("country").value.trim();
 
     const city =
         document.getElementById("city").value.trim();
@@ -107,20 +91,33 @@ form.addEventListener("submit", async function (event) {
     const description =
         document.getElementById("description").value.trim();
 
-    const newImages =
+    const images =
         document.getElementById("images").files;
 
+    if (!title || !country || !city || !description) {
+        alert("يرجى ملء جميع البيانات.");
+        return;
+    }
+
+    if (!Number.isFinite(price) || price < 0) {
+        alert("يرجى إدخال سعر صحيح.");
+        return;
+    }
 
     try {
-
         let imageUrls =
-            currentListing.image_urls || [];
+            Array.isArray(currentListing.image_urls)
+                ? [...currentListing.image_urls]
+                : [];
 
+        for (let i = 0; i < images.length; i++) {
+            const image = images[i];
 
-        // رفع الصور الجديدة
-        for (let i = 0; i < newImages.length; i++) {
-
-            const image = newImages[i];
+            const safeName =
+                image.name.replace(
+                    /[^a-zA-Z0-9._-]/g,
+                    "_"
+                );
 
             const fileName =
                 currentUser.id +
@@ -129,8 +126,9 @@ form.addEventListener("submit", async function (event) {
                 "/" +
                 Date.now() +
                 "-" +
-                image.name;
-
+                i +
+                "-" +
+                safeName;
 
             const { error: uploadError } =
                 await supabase
@@ -138,11 +136,9 @@ form.addEventListener("submit", async function (event) {
                     .from("listing-images")
                     .upload(fileName, image);
 
-
             if (uploadError) {
                 throw uploadError;
             }
-
 
             const { data: publicUrlData } =
                 supabase
@@ -150,58 +146,53 @@ form.addEventListener("submit", async function (event) {
                     .from("listing-images")
                     .getPublicUrl(fileName);
 
-
             imageUrls.push(
                 publicUrlData.publicUrl
             );
         }
 
-
-        // تحديث الإعلان
         const { error: updateError } =
             await supabase
                 .from("listings")
                 .update({
-
-                    type: type,
-                    title: title,
-                    price: price,
-                    city: city,
-                    description: description,
+                    type,
+                    title,
+                    price,
+                    currency,
+                    country,
+                    city,
+                    description,
                     image_urls: imageUrls
-
                 })
                 .eq("id", currentListing.id)
                 .eq("user_id", currentUser.id);
-
 
         if (updateError) {
             throw updateError;
         }
 
+        alert("تم حفظ التعديلات بنجاح! 🎉");
 
-        message.textContent =
-            "تم حفظ التعديلات بنجاح! 🎉";
-
-
-        setTimeout(function () {
-
-            window.location.href =
-                "profile.html";
-
-        }, 1000);
-
+        window.location.href =
+            "listing.html?id=" +
+            currentListing.id;
 
     } catch (error) {
-
         console.error(error);
 
-        message.textContent =
-            "حدث خطأ: " + error.message;
-
+        alert(
+            "حدث خطأ أثناء تعديل الإعلان:\n\n" +
+            error.message
+        );
     }
-
 });
 
+async function start() {
+    currentUser = await getUser();
 
-loadListing();
+    if (!currentUser) return;
+
+    await loadListing();
+}
+
+start();
