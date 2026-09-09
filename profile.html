@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>حسابي - Chronet</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>Chronet</h1>
+        <p>حسابي</p>
+    </header>
+
+    <nav>
+        <a href="index.html">الرئيسية</a>
+        <a href="add.html">أضف إعلانًا</a>
+        <a href="profile.html">حسابي</a>
+    </nav>
+
+    <main>
+
+        <section id="profileInfo">
+            <h2>حسابي</h2>
+            <p id="userEmail">جاري تحميل الحساب...</p>
+
+            <button id="logoutButton">
+                تسجيل الخروج
+            </button>
+        </section>
+
+        <section>
+
+            <h2>إعلاناتي</h2>
+
+            <div id="myListings">
+                <p>جاري تحميل إعلاناتك...</p>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="profile.js"></script>
+
+</body>
+
+</html>
